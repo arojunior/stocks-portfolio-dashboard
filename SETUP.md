@@ -3,6 +3,10 @@
 ## Prerequisites
 - Python 3.8 or higher
 - Git
+- **For AI Features (Recommended)**:
+  - Ollama (for local AI analysis)
+  - Google Gemini API key (for news sentiment analysis)
+  - Homebrew (macOS) or equivalent package manager
 
 ## Installation Steps
 
@@ -36,12 +40,68 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Run the Dashboard
+### 4. Set Up AI Features (Recommended)
+
+#### 4.1 Install Ollama (Local AI - Completely Free)
 ```bash
+# macOS (using Homebrew)
+brew install ollama
+
+# Start Ollama service
+brew services start ollama
+
+# Download LLaMA 3.2 model (2GB download)
+ollama pull llama3.2
+
+# Test Ollama installation
+ollama run llama3.2 "Hello! Can you help me analyze stock portfolios?"
+```
+
+**For other platforms:**
+- **Linux**: `curl -fsSL https://ollama.ai/install.sh | sh`
+- **Windows**: Download from https://ollama.ai/download
+
+#### 4.2 Configure API Keys (Optional but Recommended)
+Create a `.env` file in the project root:
+```bash
+# Create .env file with your API keys
+echo "GOOGLE_API_KEY=your_gemini_api_key_here" > .env
+echo "NEWSAPI_KEY=your_newsapi_key_here" >> .env
+echo "ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here" >> .env
+echo "TWELVE_DATA_API_KEY=your_twelve_data_key_here" >> .env
+```
+
+**How to get API keys:**
+- **Google Gemini**: https://makersuite.google.com/app/apikey (Free tier: 15 requests/minute)
+- **NewsAPI**: https://newsapi.org/register (Free tier: 100 requests/day)
+- **Alpha Vantage**: https://www.alphavantage.co/support/#api-key (Free tier: 25 requests/day)
+- **Twelve Data**: https://twelvedata.com/pricing (Free tier: 8 requests/minute)
+
+### 5. Run the Dashboard
+```bash
+# Make sure virtual environment is activated
+source venv/bin/activate
+
+# Run the dashboard
 streamlit run portfolio_dashboard.py
 ```
 
 The dashboard will be available at `http://localhost:8501`
+
+## 🤖 AI Features Overview
+
+### Local AI (Ollama + LLaMA 3.2)
+- ✅ **Completely free** - no API costs ever
+- ✅ **No rate limits** - analyze as much as you want
+- ✅ **Privacy-focused** - data stays on your machine
+- ✅ **Professional-grade** analysis
+- ✅ **Works offline**
+
+### Cloud AI (Google Gemini)
+- 📰 **News sentiment analysis**
+- 🌐 **Real-time market insights**
+- 🔄 **Free tier**: 15 requests/minute
+- 💡 **Advanced reasoning** capabilities
 
 ## Virtual Environment Management
 
@@ -101,6 +161,24 @@ stocks-portfolio-dashboard/
 - **No stock data**: Check internet connection and API rate limits
 - **Brazilian stocks not found**: Ensure ticker format is correct (e.g., PETR4, not PETR4.SA)
 
+### AI Setup Issues
+
+#### Ollama Troubleshooting
+- **Ollama not found**: Ensure Ollama is installed and in PATH
+- **Service not running**: Run `brew services start ollama` (macOS) or `ollama serve` (other platforms)
+- **Model not found**: Run `ollama pull llama3.2` to download the model
+- **Connection refused**: Check if Ollama is running on `http://localhost:11434`
+
+#### Google Gemini Issues
+- **API key invalid**: Verify your Gemini API key at https://makersuite.google.com/app/apikey
+- **Rate limit exceeded**: Free tier allows 15 requests/minute
+- **Module not found**: Ensure `google-generativeai` is installed: `pip install google-generativeai`
+
+#### General AI Issues
+- **AI section not showing**: Check if `.env` file exists and contains valid API keys
+- **Analysis taking too long**: Local AI (Ollama) may take 10-30 seconds for first analysis
+- **No AI insights**: Ensure you have stocks in your portfolio before running AI analysis
+
 ## Best Practices
 
 ### Always Use Virtual Environments
@@ -129,23 +207,55 @@ pip freeze > requirements.txt
 streamlit run portfolio_dashboard.py
 ```
 
-## Environment Variables (Optional)
-Create a `.env` file for API keys (not committed to git):
+## 🎯 Quick Start Checklist
+
+### Essential Setup (5 minutes)
+- [ ] Clone repository
+- [ ] Create virtual environment (`python -m venv venv`)
+- [ ] Activate environment (`source venv/bin/activate`)
+- [ ] Install dependencies (`pip install -r requirements.txt`)
+- [ ] Run dashboard (`streamlit run portfolio_dashboard.py`)
+
+### AI Features Setup (10 minutes)
+- [ ] Install Ollama (`brew install ollama`)
+- [ ] Start Ollama service (`brew services start ollama`)
+- [ ] Download LLaMA model (`ollama pull llama3.2`)
+- [ ] Get Google Gemini API key (https://makersuite.google.com/app/apikey)
+- [ ] Create `.env` file with API keys
+- [ ] Test AI features in dashboard
+
+### Optional Enhancements
+- [ ] Get NewsAPI key for better news coverage
+- [ ] Get Alpha Vantage key for additional stock data
+- [ ] Get Twelve Data key for Brazilian stocks
+
+## Environment Variables Reference
 ```bash
-# .env file
-ALPHA_VANTAGE_API_KEY=your_key_here
-TWELVE_DATA_API_KEY=your_key_here
+# .env file - Copy this template and add your keys
+GOOGLE_API_KEY=your_gemini_api_key_here
+NEWSAPI_KEY=your_newsapi_key_here
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
+TWELVE_DATA_API_KEY=your_twelve_data_key_here
 ```
 
-Load in Python:
-```python
-import os
-from dotenv import load_dotenv
+## 🚀 What You Get
 
-load_dotenv()
-api_key = os.getenv('ALPHA_VANTAGE_API_KEY')
-```
+### Without AI Setup
+- ✅ Multi-portfolio management
+- ✅ Real-time stock prices
+- ✅ Portfolio analytics and charts
+- ✅ News feed (limited)
+
+### With AI Setup
+- ✅ **Everything above, plus:**
+- 🤖 **Professional portfolio analysis**
+- 📈 **AI trading signals**
+- 📰 **Smart news sentiment analysis**
+- 📊 **Advanced technical charts**
+- 💡 **Investment recommendations**
 
 ---
 
 **Remember: Always activate your virtual environment before working on the project!** 🐍✨
+
+**Pro Tip: The AI features transform this from a simple tracker into a professional-grade portfolio analysis tool!** 🚀

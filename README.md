@@ -11,6 +11,14 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
 - **Interactive Visualizations**: Pie charts for portfolio composition and bar charts for performance analysis
 - **Persistent Storage**: Your portfolio data is saved locally in JSON format
 
+### 🤖 AI-Powered Features (DeepCharts Inspired)
+- **Local AI Analysis**: Ollama integration with LLaMA 3.2 for completely free portfolio insights
+- **Professional Portfolio Analysis**: AI-powered performance assessment, risk analysis, and recommendations
+- **Smart Trading Signals**: AI-generated BUY/SELL/HOLD recommendations based on price movements
+- **News Sentiment Analysis**: Google Gemini integration for analyzing market impact of news
+- **Technical Analysis**: Advanced candlestick charts with multiple technical indicators
+- **No API Limits**: Local AI means unlimited analysis without cost barriers
+
 ### 📊 Dashboard Components
 
 #### Portfolio Overview
@@ -30,11 +38,25 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
 - Remove stocks from portfolio
 - Support for both US stocks (e.g., AAPL) and Brazilian stocks (e.g., PETR4)
 
+#### 🤖 AI-Powered Analysis
+- **Portfolio Overview**: Comprehensive AI analysis of performance, risk, and diversification
+- **Trading Signals**: Smart BUY/SELL/HOLD recommendations with reasoning
+- **News Sentiment**: AI analysis of news impact on your specific stocks
+- **Technical Charts**: Advanced candlestick charts with SMA, EMA, Bollinger Bands, RSI, MACD, VWAP
+
+#### 📰 News Feed
+- **Real-Time News**: Latest news for stocks in your portfolio
+- **Multiple Sources**: NewsAPI, Alpha Vantage, web scraping fallbacks
+- **Sentiment Analysis**: AI-powered sentiment scoring for each news article
+
 ## Installation
 
 ### Prerequisites
 - Python 3.8 or higher
 - Git
+- **For AI Features**: 
+  - Ollama (for local AI analysis)
+  - Google Gemini API key (for news sentiment analysis)
 
 ### Setup with Virtual Environment (Recommended)
 **Always use a virtual environment for Python projects!**
@@ -56,9 +78,25 @@ venv\Scripts\activate
 # 3. Upgrade pip and install dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
+
+# 4. Set up AI features (optional but recommended)
+# Install Ollama for local AI analysis
+brew install ollama  # macOS
+# or follow instructions at https://ollama.ai for other platforms
+
+# Start Ollama service
+brew services start ollama
+
+# Download LLaMA model
+ollama pull llama3.2
+
+# 5. Configure API keys (create .env file)
+echo "GOOGLE_API_KEY=your_gemini_api_key_here" > .env
+echo "NEWSAPI_KEY=your_newsapi_key_here" >> .env
+echo "ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here" >> .env
 ```
 
-> 📋 **See [SETUP.md](SETUP.md) for detailed installation instructions and troubleshooting.**
+> 📋 **See [SETUP.md](SETUP.md) for detailed installation instructions, AI setup, and troubleshooting.**
 
 ## Usage
 
@@ -79,6 +117,11 @@ streamlit run portfolio_dashboard.py
    - For US stocks: Use ticker symbols like `AAPL`, `GOOGL`, `MSFT`
    - For Brazilian stocks: Use ticker symbols like `PETR4`, `VALE3`, `ITUB4`
 3. **Monitor Performance**: The dashboard will automatically fetch real-time data and display your portfolio performance
+4. **Explore AI Features**: Scroll down to the "🤖 AI-Powered Portfolio Insights" section to:
+   - Get comprehensive portfolio analysis with Ollama (local AI)
+   - View smart trading signals and recommendations
+   - Analyze news sentiment with Google Gemini
+5. **Check News Feed**: View the latest news for your portfolio stocks with AI sentiment analysis
 
 ### Stock Ticker Format
 - **US Stocks**: Use the standard ticker symbol (e.g., `AAPL` for Apple)
@@ -86,9 +129,21 @@ streamlit run portfolio_dashboard.py
 
 ## Data Sources
 
-- **Stock Data**: Yahoo Finance (via `yfinance` library)
+### Stock Data
+- **Primary**: Yahoo Finance (via `yfinance` library)
+- **Fallback APIs**: Alpha Vantage, Twelve Data (with API keys)
 - **Real-Time Updates**: Prices are fetched in real-time when the dashboard loads
 - **Market Support**: US stocks and Brazilian stocks (B3 exchange)
+
+### News Data
+- **Primary**: NewsAPI (100 requests/day free tier)
+- **Fallback**: Alpha Vantage News API, web scraping
+- **AI Analysis**: Google Gemini for sentiment analysis
+
+### AI Services
+- **Local AI**: Ollama with LLaMA 3.2 (completely free, no limits)
+- **Cloud AI**: Google Gemini (free tier: 15 requests/minute)
+- **Technical Analysis**: TA-Lib for advanced indicators
 
 ## File Structure
 
@@ -96,7 +151,11 @@ streamlit run portfolio_dashboard.py
 portfolio_dashboard.py          # Main dashboard application
 portfolios.json                # Your portfolio data (auto-created)
 requirements.txt               # Python dependencies
-README_PORTFOLIO.md            # This documentation
+README.md                      # This documentation
+SETUP.md                       # Detailed setup instructions
+DEVELOPMENT_HISTORY.md         # Development timeline and changes
+.env                          # API keys (create this file)
+.gitignore                    # Git ignore patterns
 ```
 
 ## Portfolio Data Format
@@ -133,15 +192,21 @@ Your portfolio data is stored in `portfolios.json` with the following structure:
 | Performance tracking | Manual tracking | Automatic metrics |
 | Mobile-friendly | Limited | Responsive design |
 
-## Planned Features (Future Updates)
+## ✅ Recently Added Features
 
-Based on your specifications, these features will be added in future versions:
-- 📈 **Interactive Charts**: Detailed price charts for individual stocks
-- 📰 **News Integration**: Latest news for stocks in your portfolio
-- 🤖 **AI Predictions**: Stock price predictions using machine learning
+- ✅ **AI-Powered Analysis**: Ollama + LLaMA 3.2 for local portfolio insights
+- ✅ **News Integration**: Real-time news feed with sentiment analysis
+- ✅ **Technical Charts**: Advanced candlestick charts with indicators
+- ✅ **Smart Trading Signals**: AI-generated recommendations
+- ✅ **Multi-Source Data**: Fallback APIs for reliable data fetching
+
+## 🚀 Planned Features (Future Updates)
+
 - 📊 **Advanced Analytics**: More sophisticated portfolio analysis
 - 💾 **Export Features**: Export data to Excel/CSV
 - 🔔 **Alerts**: Price and performance alerts
+- 📱 **Mobile App**: React Native companion app
+- 🌐 **Web Deployment**: Cloud-hosted version
 
 ## Troubleshooting
 
