@@ -284,11 +284,12 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
 
     return None
 
+@st.cache_data(ttl=600, show_spinner=False)  # Cache for 10 minutes to reduce API calls
 def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     """Fetch real-time stock data using multiple sources"""
 
-    # Add delay to prevent rate limiting
-    time.sleep(random.uniform(0.5, 1.5))
+    # Add longer delay to prevent rate limiting (especially for Twelve Data free tier: 8 calls/minute)
+    time.sleep(random.uniform(2.0, 4.0))
 
     # Try multiple data sources (prioritize paid APIs first)
     data_sources = [
