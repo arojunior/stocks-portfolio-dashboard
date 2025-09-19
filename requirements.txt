@@ -1,0 +1,11 @@
+# Portfolio Dashboard Dependencies
+streamlit>=1.28.0
+plotly>=5.15.0
+pandas>=2.0.0
+yfinance==0.2.40
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Optional: For better performance and additional features
+# kaleido  # For static image export of charts
+# ta       # Technical analysis indicators (if needed later)

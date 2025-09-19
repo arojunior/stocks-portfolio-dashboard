@@ -1,0 +1,9 @@
+- Based on all the knowledge from this project, I want to create a new dashboard.
+- Attached you can see a screenshot of the current google spreadsheet that I have to manage my stocks portfolio.
+- The idea is to create a dashboard that will replace this spreadsheet. In this spreadsheet, I only added the tickers, the quantity and the avarege price of my stocks.
+- All the other info is pulled from the web, like real time price and so on.
+- I want this dashboard to have the option of manage multiple portfolios, because I have investiments in the Brazilian stocks market and in the US.
+- For the moment, let's just create this dashboard that will monitor the stocks portfolios.
+- After that, we will introduce more features like charts, news and predictions for the stocks from the portfolio.
+- Only use free APIs to get data from
+- Ask me to create account if you need API keys, but remember, only free usage
