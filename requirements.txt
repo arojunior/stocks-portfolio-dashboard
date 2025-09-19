@@ -9,5 +9,9 @@ ta>=0.10.2
 pytz>=2023.3
 python-dotenv>=1.0.0
 
+# AI Features (Free Services)
+ollama>=0.3.0
+google-generativeai>=0.8.0
+
 # Optional: For better performance and additional features
 # kaleido  # For static image export of charts
