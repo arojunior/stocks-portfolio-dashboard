@@ -317,22 +317,22 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
 @st.cache_data(ttl=600, show_spinner=False)  # Cache for 10 minutes to reduce API pressure
 def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     """Fetch real-time stock data with smart fallback strategy"""
-    
+
     # Check if we have API keys available
     has_twelve_data = bool(os.getenv('TWELVE_DATA_API_KEY'))
     has_alpha_vantage = bool(os.getenv('ALPHA_VANTAGE_API_KEY'))
-    
+
     # Smart prioritization: Try Yahoo Finance first (no rate limits), then paid APIs
     data_sources = [
         ("Yahoo Finance", fetch_from_yahoo_finance),  # Try free option first
     ]
-    
+
     # Add paid APIs if available (but be careful with rate limits)
     if has_alpha_vantage:
         data_sources.append(("Alpha Vantage", fetch_from_alpha_vantage))
     if has_twelve_data:
         data_sources.append(("Twelve Data", fetch_from_twelve_data))
-    
+
     # Try sources sequentially to avoid rate limit issues
     for source_name, fetch_func in data_sources:
         try:
@@ -341,9 +341,105 @@ def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
                 return result
         except Exception as e:
             continue
-    
+
     # If all sources fail, return None
     return None
+
+##########################################################################################
+## STOCK NEWS FEED ##
+##########################################################################################
+
+@st.cache_data(ttl=1800, show_spinner=False)  # Cache for 30 minutes
+def fetch_stock_news_alpha_vantage(ticker: str, limit: int = 10) -> List[Dict]:
+    """Fetch stock news from Alpha Vantage News API"""
+    try:
+        api_key = os.getenv('ALPHA_VANTAGE_API_KEY')
+        if not api_key:
+            return []
+        
+        # Alpha Vantage News & Sentiment endpoint
+        params = {
+            'function': 'NEWS_SENTIMENT',
+            'tickers': ticker,
+            'limit': limit,
+            'apikey': api_key
+        }
+        
+        url = "https://www.alphavantage.co/query"
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+        
+        news_articles = []
+        if 'feed' in data:
+            for article in data['feed'][:limit]:
+                news_articles.append({
+                    'title': article.get('title', 'No title'),
+                    'summary': article.get('summary', 'No summary available'),
+                    'url': article.get('url', ''),
+                    'time_published': article.get('time_published', ''),
+                    'source': article.get('source', 'Unknown'),
+                    'sentiment_score': article.get('overall_sentiment_score', 0),
+                    'sentiment_label': article.get('overall_sentiment_label', 'Neutral')
+                })
+        
+        return news_articles
+        
+    except Exception as e:
+        st.warning(f"Alpha Vantage News error for {ticker}: {str(e)}")
+        return []
+
+@st.cache_data(ttl=1800, show_spinner=False)  # Cache for 30 minutes
+def fetch_stock_news_yahoo(ticker: str, limit: int = 10) -> List[Dict]:
+    """Fetch stock news from Yahoo Finance (web scraping fallback)"""
+    try:
+        # Format ticker for Yahoo Finance
+        if ticker.endswith('.SA'):
+            yahoo_ticker = ticker
+        else:
+            yahoo_ticker = ticker
+            
+        # Use yfinance to get news
+        with SuppressYFinanceOutput():
+            stock = yf.Ticker(yahoo_ticker)
+            news = stock.news
+        
+        news_articles = []
+        for article in news[:limit]:
+            # Convert timestamp to readable format
+            pub_time = datetime.fromtimestamp(article.get('providerPublishTime', 0))
+            
+            news_articles.append({
+                'title': article.get('title', 'No title'),
+                'summary': article.get('summary', 'No summary available'),
+                'url': article.get('link', ''),
+                'time_published': pub_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'source': article.get('publisher', 'Yahoo Finance'),
+                'sentiment_score': 0,  # Yahoo doesn't provide sentiment
+                'sentiment_label': 'Neutral'
+            })
+        
+        return news_articles
+        
+    except Exception as e:
+        return []
+
+def fetch_portfolio_news(portfolio_stocks: Dict, limit_per_stock: int = 5) -> Dict[str, List[Dict]]:
+    """Fetch news for all stocks in portfolio"""
+    portfolio_news = {}
+    
+    # Limit to first 5 stocks to avoid API rate limits
+    stock_tickers = list(portfolio_stocks.keys())[:5]
+    
+    for ticker in stock_tickers:
+        # Try Alpha Vantage first, then Yahoo Finance
+        news = fetch_stock_news_alpha_vantage(ticker, limit_per_stock)
+        if not news:
+            news = fetch_stock_news_yahoo(ticker, limit_per_stock)
+        
+        if news:
+            portfolio_news[ticker] = news
+    
+    return portfolio_news
 
 ##########################################################################################
 ## ADVANCED CHARTING (DeepCharts Inspired) ##
@@ -813,6 +909,67 @@ if selected_portfolio:
                     worst = metrics['worst_performer']
                     st.write(f"**{worst['Ticker']}**: {worst['Change %']:.2f}% loss")
                     st.write(f"Value: {currency} {worst['Current Value']:,.2f}")
+
+            # Stock News Feed Section
+            st.markdown("---")
+            st.subheader("📰 Latest Stock News")
+            
+            # News settings
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write("Stay updated with the latest news for your portfolio stocks")
+            with col2:
+                news_limit = st.selectbox("News per stock", [3, 5, 10], index=1, key="news_limit")
+            
+            # Fetch and display news
+            if st.button("🔄 Refresh News", key="refresh_news"):
+                st.cache_data.clear()  # Clear cache to get fresh news
+            
+            with st.spinner("Fetching latest news..."):
+                portfolio_news = fetch_portfolio_news(portfolio_stocks, news_limit)
+            
+            if portfolio_news:
+                # Create tabs for each stock
+                stock_tabs = st.tabs([f"📈 {ticker}" for ticker in portfolio_news.keys()])
+                
+                for i, (ticker, news_articles) in enumerate(portfolio_news.items()):
+                    with stock_tabs[i]:
+                        if news_articles:
+                            for article in news_articles:
+                                # Create news card
+                                with st.container():
+                                    # Header with title and sentiment
+                                    col1, col2 = st.columns([4, 1])
+                                    with col1:
+                                        st.markdown(f"**[{article['title']}]({article['url']})**")
+                                    with col2:
+                                        # Sentiment indicator
+                                        sentiment = article['sentiment_label']
+                                        if sentiment == 'Positive':
+                                            st.success(f"😊 {sentiment}")
+                                        elif sentiment == 'Negative':
+                                            st.error(f"😟 {sentiment}")
+                                        else:
+                                            st.info(f"😐 {sentiment}")
+                                    
+                                    # Article details
+                                    st.write(article['summary'])
+                                    
+                                    # Footer with source and time
+                                    col1, col2 = st.columns([2, 2])
+                                    with col1:
+                                        st.caption(f"📰 Source: {article['source']}")
+                                    with col2:
+                                        st.caption(f"🕒 {article['time_published']}")
+                                    
+                                    st.markdown("---")
+                        else:
+                            st.info(f"No recent news found for {ticker}")
+            else:
+                st.warning("No news available for your portfolio stocks. This could be due to:")
+                st.write("• API rate limits")
+                st.write("• No recent news for these stocks")
+                st.write("• Network connectivity issues")
 
             # Technical Analysis Section (DeepCharts inspired) - Temporarily disabled to reduce API noise
             st.markdown("---")
