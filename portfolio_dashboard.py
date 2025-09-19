@@ -98,6 +98,7 @@ def fetch_enhanced_stock_data(ticker: str, market: str = "US", period: str = "1m
         hist = stock.history(period=period, interval="1d")
 
         if hist.empty:
+            # If no historical data, return None silently (don't log error)
             return None
 
         # Process data similar to DeepCharts approach
@@ -163,7 +164,10 @@ def fetch_enhanced_stock_data(ticker: str, market: str = "US", period: str = "1m
             }
         }
     except Exception as e:
-        st.warning(f"Could not fetch enhanced data for {ticker}: {str(e)}")
+        # Silently handle yfinance errors - they're common for delisted/problematic stocks
+        # Only log if it's not a common yfinance JSON parsing error
+        if "Expecting value: line 1 column 1" not in str(e):
+            st.warning(f"Could not fetch enhanced data for {ticker}: {str(e)}")
 
     return None
 
@@ -762,7 +766,7 @@ if selected_portfolio:
             styled_df = display_df.style.map(highlight_gains_losses, subset=['Change %', 'Day Change %'])
             # Calculate dynamic height based on number of rows (35px per row + header)
             table_height = min(len(display_df) * 35 + 50, 800)  # Max height of 800px
-            st.dataframe(styled_df, use_container_width=True, hide_index=True, height=table_height)
+            st.dataframe(styled_df, width="stretch", hide_index=True, height=table_height)
 
             # Performance highlights
             if metrics['best_performer'] is not None and metrics['worst_performer'] is not None:
