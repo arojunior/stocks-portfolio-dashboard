@@ -584,7 +584,7 @@ def check_ollama_availability() -> Dict[str, bool]:
             }
     except:
         pass
-    
+
     return {'available': False, 'models': [], 'has_llama': False}
 
 def setup_gemini_ai() -> bool:
@@ -603,55 +603,55 @@ def analyze_portfolio_with_ollama(portfolio_data: pd.DataFrame, portfolio_name: 
     """Use Ollama to analyze portfolio performance and provide insights"""
     if not OLLAMA_AVAILABLE:
         return "Ollama not available. Please install: pip install ollama"
-    
+
     ollama_status = check_ollama_availability()
     if not ollama_status['available']:
         return "Ollama service not running. Start with: ollama serve"
-    
+
     if not ollama_status['has_llama']:
         return "No LLaMA model found. Install with: ollama pull llama3.2"
-    
+
     try:
         # Prepare portfolio summary for AI analysis
         total_value = portfolio_data['Current Value'].sum()
         total_invested = portfolio_data['Total Invested'].sum()
         total_return = total_value - total_invested
         return_pct = (total_return / total_invested * 100) if total_invested > 0 else 0
-        
+
         best_performer = portfolio_data.loc[portfolio_data['Change %'].idxmax()]
         worst_performer = portfolio_data.loc[portfolio_data['Change %'].idxmin()]
-        
+
         portfolio_summary = f"""
         Portfolio: {portfolio_name}
         Total Value: ${total_value:,.2f}
         Total Invested: ${total_invested:,.2f}
         Total Return: ${total_return:,.2f} ({return_pct:.2f}%)
-        
+
         Best Performer: {best_performer['Ticker']} ({best_performer['Change %']:.2f}%)
         Worst Performer: {worst_performer['Ticker']} ({worst_performer['Change %']:.2f}%)
-        
+
         Holdings: {len(portfolio_data)} stocks
         Top Holdings: {', '.join(portfolio_data.nlargest(3, 'Current Value')['Ticker'].tolist())}
         """
-        
+
         prompt = f"""You are a professional financial advisor. Analyze this portfolio and provide:
         1. Overall performance assessment
         2. Risk analysis
         3. Diversification insights
         4. Specific recommendations for improvement
-        
+
         Portfolio Data:
         {portfolio_summary}
-        
+
         Provide a concise but comprehensive analysis in 3-4 paragraphs."""
-        
+
         response = ollama.chat(
             model='llama3.2',
             messages=[{'role': 'user', 'content': prompt}]
         )
-        
+
         return response['message']['content']
-        
+
     except Exception as e:
         return f"Error analyzing portfolio with Ollama: {str(e)}"
 
@@ -660,10 +660,10 @@ def analyze_news_sentiment_with_gemini(news_articles: List[Dict], ticker: str) -
     """Use Google Gemini to analyze news sentiment and market impact"""
     if not GEMINI_AVAILABLE:
         return "Google Gemini not available. Please install: pip install google-generativeai"
-    
+
     if not setup_gemini_ai():
         return "Gemini API key not found. Add GOOGLE_API_KEY to your .env file"
-    
+
     try:
         # Prepare news summary for AI analysis
         news_summary = f"News Analysis for {ticker}:\n\n"
@@ -671,34 +671,34 @@ def analyze_news_sentiment_with_gemini(news_articles: List[Dict], ticker: str) -
             news_summary += f"{i}. {article['title']}\n"
             news_summary += f"   Summary: {article['summary'][:200]}...\n"
             news_summary += f"   Source: {article['source']}\n\n"
-        
+
         prompt = f"""As a financial analyst, analyze these recent news articles for {ticker} and provide:
-        
+
         1. Overall sentiment (Positive/Negative/Neutral)
         2. Key themes and trends
         3. Potential market impact
         4. Investment implications
-        
+
         {news_summary}
-        
+
         Provide a concise analysis in 2-3 paragraphs focusing on actionable insights."""
-        
+
         model = genai.GenerativeModel('gemini-pro')
         response = model.generate_content(prompt)
-        
+
         return response.text
-        
+
     except Exception as e:
         return f"Error analyzing news with Gemini: {str(e)}"
 
 def generate_ai_trading_signals(portfolio_data: pd.DataFrame) -> Dict[str, str]:
     """Generate AI-powered trading signals for portfolio stocks"""
     signals = {}
-    
+
     for _, stock in portfolio_data.iterrows():
         ticker = stock['Ticker']
         change_pct = stock['Change %']
-        
+
         # Simple AI-like logic (can be enhanced with real AI models)
         if change_pct > 5:
             signals[ticker] = "🔥 STRONG BUY - Momentum building"
@@ -710,7 +710,7 @@ def generate_ai_trading_signals(portfolio_data: pd.DataFrame) -> Dict[str, str]:
             signals[ticker] = "📉 WATCH - Declining trend"
         else:
             signals[ticker] = "⚠️ REVIEW - Significant decline"
-    
+
     return signals
 
 ##########################################################################################
@@ -936,7 +936,7 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, market: str) -> pd.DataFr
             currency = real_time_data['currency']
         else:
             # If no real-time data available, use average price as placeholder
-                current_price = avg_price
+            current_price = avg_price
             day_change = 0
             day_change_percent = 0
             currency = 'BRL' if market == "Brazilian" else 'USD'
@@ -1256,11 +1256,11 @@ if selected_portfolio:
             # AI-Powered Insights Section (DeepCharts inspired)
             st.markdown("---")
             st.subheader("🤖 AI-Powered Portfolio Insights")
-            
+
             # Check AI service availability
             ollama_status = check_ollama_availability()
             gemini_available = setup_gemini_ai()
-            
+
             col1, col2 = st.columns(2)
             with col1:
                 st.write("**AI Services Status:**")
@@ -1274,24 +1274,24 @@ if selected_portfolio:
                 else:
                     st.error("❌ Ollama: Not running")
                     st.info("Start with: `ollama serve`")
-            
+
             with col2:
                 if gemini_available:
                     st.success("✅ Google Gemini: Connected")
                 else:
                     st.error("❌ Google Gemini: No API key")
                     st.info("Add GOOGLE_API_KEY to .env file")
-            
+
             # AI Analysis Options
             ai_analysis_type = st.selectbox(
                 "Choose AI Analysis:",
                 ["Portfolio Overview", "Trading Signals", "News Sentiment"],
                 key="ai_analysis_type"
             )
-            
+
             if st.button("🧠 Run AI Analysis", key="run_ai_analysis"):
                 with st.spinner("AI is analyzing your portfolio..."):
-                    
+
                     if ai_analysis_type == "Portfolio Overview":
                         if ollama_status['available'] and ollama_status['has_llama']:
                             analysis = analyze_portfolio_with_ollama(portfolio_df, selected_portfolio)
@@ -1299,11 +1299,11 @@ if selected_portfolio:
                             st.write(analysis)
                         else:
                             st.warning("Ollama with LLaMA model required for portfolio analysis")
-                    
+
                     elif ai_analysis_type == "Trading Signals":
                         signals = generate_ai_trading_signals(portfolio_df)
                         st.markdown("### 📊 AI Trading Signals")
-                        
+
                         for ticker, signal in signals.items():
                             if "STRONG BUY" in signal:
                                 st.success(f"**{ticker}**: {signal}")
@@ -1313,11 +1313,11 @@ if selected_portfolio:
                                 st.warning(f"**{ticker}**: {signal}")
                             else:
                                 st.error(f"**{ticker}**: {signal}")
-                    
+
                     elif ai_analysis_type == "News Sentiment":
                         if gemini_available and portfolio_news:
                             st.markdown("### 📰 AI News Sentiment Analysis")
-                            
+
                             # Analyze news for each stock
                             for ticker, news_articles in list(portfolio_news.items())[:2]:  # Limit to 2 stocks
                                 if news_articles:
@@ -1329,31 +1329,31 @@ if selected_portfolio:
                                 st.warning("Google Gemini API key required for news sentiment analysis")
                             if not portfolio_news:
                                 st.warning("No news data available for sentiment analysis")
-            
+
             # AI Setup Instructions
             with st.expander("🛠️ AI Setup Instructions"):
                 st.markdown("""
                 ### Free AI Services Setup
-                
+
                 **1. Ollama (Local AI - Completely Free)**
                 ```bash
                 # Install Ollama
                 curl -fsSL https://ollama.ai/install.sh | sh
-                
+
                 # Start Ollama service
                 ollama serve
-                
+
                 # Install LLaMA model (in another terminal)
                 ollama pull llama3.2
                 ```
-                
+
                 **2. Google Gemini (Free Tier - 15 requests/minute)**
                 - Get free API key at: https://aistudio.google.com/app/apikey
                 - Add to your `.env` file: `GOOGLE_API_KEY=your_key_here`
-                
+
                 **Benefits:**
                 - 🎯 **Portfolio Analysis**: AI-powered insights on performance and risk
-                - 📊 **Trading Signals**: Smart buy/sell/hold recommendations  
+                - 📊 **Trading Signals**: Smart buy/sell/hold recommendations
                 - 📰 **News Sentiment**: AI analysis of market news impact
                 """)
 
