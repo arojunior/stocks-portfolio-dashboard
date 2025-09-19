@@ -11,13 +11,33 @@ import yfinance as yf
 import requests
 import json
 import os
+import sys
 import time
 import random
 import pytz
 import ta  # Technical Analysis library
+import logging
+import warnings
+from contextlib import redirect_stderr
+from io import StringIO
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from bs4 import BeautifulSoup
+
+# Suppress yfinance and other noisy warnings/logs
+logging.getLogger('yfinance').setLevel(logging.CRITICAL)
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', message='.*possibly delisted.*')
+
+# Context manager to suppress yfinance stderr output
+class SuppressYFinanceOutput:
+    def __enter__(self):
+        self._original_stderr = sys.stderr
+        sys.stderr = StringIO()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stderr = self._original_stderr
 
 # Load environment variables
 try:
@@ -93,9 +113,10 @@ def fetch_enhanced_stock_data(ticker: str, market: str = "US", period: str = "1m
         else:
             ticker_symbol = ticker
 
-        # Fetch extended historical data for technical analysis
-        stock = yf.Ticker(ticker_symbol)
-        hist = stock.history(period=period, interval="1d")
+        # Fetch extended historical data for technical analysis (suppress yfinance errors)
+        with SuppressYFinanceOutput():
+            stock = yf.Ticker(ticker_symbol)
+            hist = stock.history(period=period, interval="1d")
 
         if hist.empty:
             # If no historical data, return None silently (don't log error)
@@ -785,18 +806,20 @@ if selected_portfolio:
                     st.write(f"**{worst['Ticker']}**: {worst['Change %']:.2f}% loss")
                     st.write(f"Value: {currency} {worst['Current Value']:,.2f}")
 
-            # Technical Analysis Section (DeepCharts inspired)
+            # Technical Analysis Section (DeepCharts inspired) - Temporarily disabled to reduce API noise
             st.markdown("---")
             st.subheader("📊 Technical Analysis (DeepCharts Enhanced)")
+            st.info("🔧 Technical analysis temporarily disabled to reduce API errors. Will be re-enabled with better error handling.")
+            
+            # Stock selection for detailed analysis (commented out temporarily)
+            # selected_stock = st.selectbox(
+            #     "Select stock for detailed technical analysis:",
+            #     options=list(portfolio_stocks.keys()),
+            #     key="tech_analysis_stock"
+            # )
 
-            # Stock selection for detailed analysis
-            selected_stock = st.selectbox(
-                "Select stock for detailed technical analysis:",
-                options=list(portfolio_stocks.keys()),
-                key="tech_analysis_stock"
-            )
-
-            if selected_stock:
+            # Temporarily disabled technical analysis section
+            if False:  # selected_stock:
                 col1, col2 = st.columns([2, 1])
 
                 with col1:
