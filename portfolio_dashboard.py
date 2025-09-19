@@ -18,6 +18,8 @@ import pytz
 import ta  # Technical Analysis library
 import logging
 import warnings
+import concurrent.futures
+import threading
 from contextlib import redirect_stderr
 from io import StringIO
 from datetime import datetime, timedelta
@@ -35,7 +37,7 @@ class SuppressYFinanceOutput:
         self._original_stderr = sys.stderr
         sys.stderr = StringIO()
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stderr = self._original_stderr
 
@@ -312,28 +314,52 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
 
     return None
 
-@st.cache_data(ttl=600, show_spinner=False)  # Cache for 10 minutes to reduce API calls
+@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
 def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
-    """Fetch real-time stock data using multiple sources"""
-
-    # Add longer delay to prevent rate limiting (especially for Twelve Data free tier: 8 calls/minute)
-    time.sleep(random.uniform(2.0, 4.0))
-
-    # Try multiple data sources (prioritize paid APIs first)
+    """Fetch real-time stock data using multiple sources with race condition (fastest wins)"""
+    
+    # Define data sources
     data_sources = [
         ("Twelve Data", fetch_from_twelve_data),
         ("Alpha Vantage", fetch_from_alpha_vantage),
         ("Yahoo Finance", fetch_from_yahoo_finance)
     ]
-
-    for source_name, fetch_func in data_sources:
+    
+    def fetch_with_timeout(source_name, fetch_func):
+        """Fetch data with error handling"""
         try:
             result = fetch_func(ticker, market)
-            if result and result["current_price"] > 0:
-                return result
+            if result and result.get("current_price", 0) > 0:
+                return (source_name, result)
         except Exception:
-            continue
-
+            pass
+        return None
+    
+    # Use ThreadPoolExecutor to race all APIs simultaneously
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            # Submit all API calls simultaneously
+            future_to_source = {
+                executor.submit(fetch_with_timeout, source_name, fetch_func): source_name 
+                for source_name, fetch_func in data_sources
+            }
+            
+            # Return the first successful result (race condition)
+            for future in concurrent.futures.as_completed(future_to_source, timeout=6):
+                try:
+                    result = future.result()
+                    if result:
+                        source_name, data = result
+                        # Cancel remaining futures to save resources
+                        for f in future_to_source:
+                            if f != future and not f.done():
+                                f.cancel()
+                        return data
+                except Exception:
+                    continue
+    except Exception:
+        pass
+    
     # If all sources fail, return None (no fake data)
     return None
 
@@ -810,7 +836,7 @@ if selected_portfolio:
             st.markdown("---")
             st.subheader("📊 Technical Analysis (DeepCharts Enhanced)")
             st.info("🔧 Technical analysis temporarily disabled to reduce API errors. Will be re-enabled with better error handling.")
-            
+
             # Stock selection for detailed analysis (commented out temporarily)
             # selected_stock = st.selectbox(
             #     "Select stock for detailed technical analysis:",
