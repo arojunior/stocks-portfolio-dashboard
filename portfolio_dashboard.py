@@ -189,7 +189,7 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
         api_key = os.getenv('TWELVE_DATA_API_KEY')
         if not api_key:
             return None  # Skip if no API key provided
-        
+
         # Twelve Data uses different symbol format for Brazilian stocks
         if market == "Brazilian":
             # Remove .SA suffix if present, Twelve Data uses just the ticker
@@ -249,7 +249,7 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
         api_key = os.getenv('ALPHA_VANTAGE_API_KEY')
         if not api_key:
             return None  # Skip if no API key provided
-        
+
         # Alpha Vantage uses .SA suffix for Brazilian stocks
         if market == "Brazilian" and not ticker.endswith('.SA'):
             symbol = f"{ticker}.SA"
@@ -760,7 +760,9 @@ if selected_portfolio:
                 return ''
 
             styled_df = display_df.style.map(highlight_gains_losses, subset=['Change %', 'Day Change %'])
-            st.dataframe(styled_df, width="stretch")
+            # Calculate dynamic height based on number of rows (35px per row + header)
+            table_height = min(len(display_df) * 35 + 50, 800)  # Max height of 800px
+            st.dataframe(styled_df, use_container_width=True, hide_index=True, height=table_height)
 
             # Performance highlights
             if metrics['best_performer'] is not None and metrics['worst_performer'] is not None:
