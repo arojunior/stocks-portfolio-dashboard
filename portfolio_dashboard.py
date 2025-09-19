@@ -190,8 +190,10 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
         if not api_key:
             return None  # Skip if no API key provided
         
-        if market == "Brazilian" and not ticker.endswith('.SA'):
-            symbol = f"{ticker}.SA"
+        # Twelve Data uses different symbol format for Brazilian stocks
+        if market == "Brazilian":
+            # Remove .SA suffix if present, Twelve Data uses just the ticker
+            symbol = ticker.replace('.SA', '')
         else:
             symbol = ticker
 
@@ -200,7 +202,7 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
             'symbol': symbol,
             'apikey': api_key
         }
-        
+
         # Try quote endpoint first (more complete data)
         quote_url = "https://api.twelvedata.com/quote"
         response = requests.get(quote_url, params=params, timeout=10)
@@ -209,7 +211,7 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
         if "close" in data and data["close"]:
             current_price = float(data["close"])
             prev_close = float(data.get("previous_close", current_price))
-            
+
             return {
                 "current_price": current_price,
                 "previous_close": prev_close,
@@ -218,7 +220,7 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
                 "volume": int(data.get("volume", 0)) if data.get("volume") else 0,
                 "currency": 'USD' if market == "US" else 'BRL'
             }
-        
+
         # Fallback to simple price endpoint
         price_url = "https://api.twelvedata.com/price"
         response = requests.get(price_url, params=params, timeout=10)
@@ -234,7 +236,7 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
                 "volume": 0,
                 "currency": 'USD' if market == "US" else 'BRL'
             }
-            
+
     except Exception as e:
         st.warning(f"Twelve Data API error for {ticker}: {str(e)}")
 
@@ -248,6 +250,7 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
         if not api_key:
             return None  # Skip if no API key provided
         
+        # Alpha Vantage uses .SA suffix for Brazilian stocks
         if market == "Brazilian" and not ticker.endswith('.SA'):
             symbol = f"{ticker}.SA"
         else:
@@ -259,7 +262,7 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
             'symbol': symbol,
             'apikey': api_key
         }
-        
+
         url = "https://www.alphavantage.co/query"
         response = requests.get(url, params=params, timeout=10)
         data = response.json()
@@ -269,7 +272,7 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
             if "05. price" in quote and quote["05. price"]:
                 current_price = float(quote["05. price"])
                 prev_close = float(quote.get("08. previous close", current_price))
-                
+
                 return {
                     "current_price": current_price,
                     "previous_close": prev_close,
@@ -278,7 +281,7 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
                     "volume": int(quote.get("06. volume", 0)) if quote.get("06. volume") else 0,
                     "currency": 'USD' if market == "US" else 'BRL'
                 }
-            
+
     except Exception as e:
         st.warning(f"Alpha Vantage API error for {ticker}: {str(e)}")
 
