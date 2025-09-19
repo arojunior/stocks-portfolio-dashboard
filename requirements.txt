@@ -5,7 +5,8 @@ pandas>=2.0.0
 yfinance==0.2.40
 requests>=2.31.0
 beautifulsoup4>=4.12.0
+ta>=0.10.2
+pytz>=2023.3
 
 # Optional: For better performance and additional features
 # kaleido  # For static image export of charts
-# ta       # Technical analysis indicators (if needed later)
