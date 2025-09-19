@@ -19,6 +19,13 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from bs4 import BeautifulSoup
 
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv is optional
+
 ##########################################################################################
 ## PORTFOLIO MANAGEMENT SYSTEM ##
 ##########################################################################################
@@ -176,15 +183,45 @@ def fetch_from_yahoo_finance(ticker: str, market: str = "US") -> Optional[Dict]:
     return None
 
 def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
-    """Fetch data from Twelve Data API (free tier)"""
+    """Fetch data from Twelve Data API with API key support"""
     try:
+        # Get API key from environment
+        api_key = os.getenv('TWELVE_DATA_API_KEY')
+        if not api_key:
+            return None  # Skip if no API key provided
+        
         if market == "Brazilian" and not ticker.endswith('.SA'):
             symbol = f"{ticker}.SA"
         else:
             symbol = ticker
 
-        url = f"https://api.twelvedata.com/price?symbol={symbol}"
-        response = requests.get(url, timeout=10)
+        # Use both price and quote endpoints for more complete data
+        params = {
+            'symbol': symbol,
+            'apikey': api_key
+        }
+        
+        # Try quote endpoint first (more complete data)
+        quote_url = "https://api.twelvedata.com/quote"
+        response = requests.get(quote_url, params=params, timeout=10)
+        data = response.json()
+
+        if "close" in data and data["close"]:
+            current_price = float(data["close"])
+            prev_close = float(data.get("previous_close", current_price))
+            
+            return {
+                "current_price": current_price,
+                "previous_close": prev_close,
+                "change": current_price - prev_close,
+                "change_percent": ((current_price - prev_close) / prev_close) * 100 if prev_close != 0 else 0,
+                "volume": int(data.get("volume", 0)) if data.get("volume") else 0,
+                "currency": 'USD' if market == "US" else 'BRL'
+            }
+        
+        # Fallback to simple price endpoint
+        price_url = "https://api.twelvedata.com/price"
+        response = requests.get(price_url, params=params, timeout=10)
         data = response.json()
 
         if "price" in data and data["price"]:
@@ -197,8 +234,53 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
                 "volume": 0,
                 "currency": 'USD' if market == "US" else 'BRL'
             }
-    except Exception:
-        pass
+            
+    except Exception as e:
+        st.warning(f"Twelve Data API error for {ticker}: {str(e)}")
+
+    return None
+
+def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
+    """Fetch data from Alpha Vantage API with API key support"""
+    try:
+        # Get API key from environment
+        api_key = os.getenv('ALPHA_VANTAGE_API_KEY')
+        if not api_key:
+            return None  # Skip if no API key provided
+        
+        if market == "Brazilian" and not ticker.endswith('.SA'):
+            symbol = f"{ticker}.SA"
+        else:
+            symbol = ticker
+
+        # Use Global Quote endpoint
+        params = {
+            'function': 'GLOBAL_QUOTE',
+            'symbol': symbol,
+            'apikey': api_key
+        }
+        
+        url = "https://www.alphavantage.co/query"
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+
+        if "Global Quote" in data:
+            quote = data["Global Quote"]
+            if "05. price" in quote and quote["05. price"]:
+                current_price = float(quote["05. price"])
+                prev_close = float(quote.get("08. previous close", current_price))
+                
+                return {
+                    "current_price": current_price,
+                    "previous_close": prev_close,
+                    "change": float(quote.get("09. change", 0)),
+                    "change_percent": float(quote.get("10. change percent", "0").replace("%", "")),
+                    "volume": int(quote.get("06. volume", 0)) if quote.get("06. volume") else 0,
+                    "currency": 'USD' if market == "US" else 'BRL'
+                }
+            
+    except Exception as e:
+        st.warning(f"Alpha Vantage API error for {ticker}: {str(e)}")
 
     return None
 
@@ -208,9 +290,10 @@ def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     # Add delay to prevent rate limiting
     time.sleep(random.uniform(0.5, 1.5))
 
-    # Try multiple data sources
+    # Try multiple data sources (prioritize paid APIs first)
     data_sources = [
         ("Twelve Data", fetch_from_twelve_data),
+        ("Alpha Vantage", fetch_from_alpha_vantage),
         ("Yahoo Finance", fetch_from_yahoo_finance)
     ]
 
