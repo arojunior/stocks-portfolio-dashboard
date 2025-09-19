@@ -679,18 +679,99 @@ if selected_portfolio:
             if metrics['best_performer'] is not None and metrics['worst_performer'] is not None:
                 st.subheader("Performance Highlights")
                 col1, col2 = st.columns(2)
-
+                
                 with col1:
                     st.success("🏆 Best Performer")
                     best = metrics['best_performer']
                     st.write(f"**{best['Ticker']}**: {best['Change %']:.2f}% gain")
                     st.write(f"Value: {currency} {best['Current Value']:,.2f}")
-
+                
                 with col2:
                     st.error("📉 Worst Performer")
                     worst = metrics['worst_performer']
                     st.write(f"**{worst['Ticker']}**: {worst['Change %']:.2f}% loss")
                     st.write(f"Value: {currency} {worst['Current Value']:,.2f}")
+            
+            # Technical Analysis Section (DeepCharts inspired)
+            st.markdown("---")
+            st.subheader("📊 Technical Analysis (DeepCharts Enhanced)")
+            
+            # Stock selection for detailed analysis
+            selected_stock = st.selectbox(
+                "Select stock for detailed technical analysis:",
+                options=list(portfolio_stocks.keys()),
+                key="tech_analysis_stock"
+            )
+            
+            if selected_stock:
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    # Candlestick chart with technical indicators
+                    st.subheader(f"{selected_stock} - Advanced Chart")
+                    
+                    # Chart period selection
+                    chart_period = st.selectbox(
+                        "Chart Period:",
+                        options=["1mo", "3mo", "6mo", "1y"],
+                        index=1,
+                        key="chart_period"
+                    )
+                    
+                    # Create and display candlestick chart
+                    with st.spinner("Loading advanced chart..."):
+                        fig = create_candlestick_chart(selected_stock, market_type, chart_period)
+                        if fig:
+                            st.plotly_chart(fig, width="stretch")
+                        else:
+                            st.warning(f"Could not load chart for {selected_stock}")
+                
+                with col2:
+                    # Technical indicators summary
+                    st.subheader("Technical Indicators")
+                    
+                    with st.spinner("Calculating indicators..."):
+                        tech_summary = create_technical_indicators_summary(selected_stock, market_type)
+                        
+                        if tech_summary:
+                            # Current price
+                            st.metric(
+                                "Current Price",
+                                f"{currency} {tech_summary['current_price']:.2f}"
+                            )
+                            
+                            # Technical signals
+                            st.subheader("Trading Signals")
+                            for signal in tech_summary['signals']:
+                                color = signal['color']
+                                if color == 'green':
+                                    st.success(f"**{signal['indicator']}**: {signal['signal']}")
+                                elif color == 'red':
+                                    st.error(f"**{signal['indicator']}**: {signal['signal']}")
+                                else:
+                                    st.info(f"**{signal['indicator']}**: {signal['signal']}")
+                                
+                                if signal['value']:
+                                    st.caption(f"Value: {signal['value']:.2f}")
+                            
+                            # Raw indicator values
+                            st.subheader("Indicator Values")
+                            indicators = tech_summary['indicators']
+                            
+                            if indicators.get('rsi'):
+                                st.metric("RSI (14)", f"{indicators['rsi']:.2f}")
+                            
+                            if indicators.get('sma_20'):
+                                st.metric("SMA 20", f"{currency} {indicators['sma_20']:.2f}")
+                            
+                            if indicators.get('ema_20'):
+                                st.metric("EMA 20", f"{currency} {indicators['ema_20']:.2f}")
+                            
+                            if indicators.get('vwap'):
+                                st.metric("VWAP", f"{currency} {indicators['vwap']:.2f}")
+                        
+                        else:
+                            st.warning(f"Could not load technical analysis for {selected_stock}")
 
         else:
             st.warning("Unable to fetch data for the stocks in your portfolio. Please check the ticker symbols or try again later.")
