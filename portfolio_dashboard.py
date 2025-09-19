@@ -314,53 +314,35 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
 
     return None
 
-@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
+@st.cache_data(ttl=600, show_spinner=False)  # Cache for 10 minutes to reduce API pressure
 def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
-    """Fetch real-time stock data using multiple sources with race condition (fastest wins)"""
+    """Fetch real-time stock data with smart fallback strategy"""
     
-    # Define data sources
+    # Check if we have API keys available
+    has_twelve_data = bool(os.getenv('TWELVE_DATA_API_KEY'))
+    has_alpha_vantage = bool(os.getenv('ALPHA_VANTAGE_API_KEY'))
+    
+    # Smart prioritization: Try Yahoo Finance first (no rate limits), then paid APIs
     data_sources = [
-        ("Twelve Data", fetch_from_twelve_data),
-        ("Alpha Vantage", fetch_from_alpha_vantage),
-        ("Yahoo Finance", fetch_from_yahoo_finance)
+        ("Yahoo Finance", fetch_from_yahoo_finance),  # Try free option first
     ]
     
-    def fetch_with_timeout(source_name, fetch_func):
-        """Fetch data with error handling"""
+    # Add paid APIs if available (but be careful with rate limits)
+    if has_alpha_vantage:
+        data_sources.append(("Alpha Vantage", fetch_from_alpha_vantage))
+    if has_twelve_data:
+        data_sources.append(("Twelve Data", fetch_from_twelve_data))
+    
+    # Try sources sequentially to avoid rate limit issues
+    for source_name, fetch_func in data_sources:
         try:
             result = fetch_func(ticker, market)
             if result and result.get("current_price", 0) > 0:
-                return (source_name, result)
-        except Exception:
-            pass
-        return None
+                return result
+        except Exception as e:
+            continue
     
-    # Use ThreadPoolExecutor to race all APIs simultaneously
-    try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            # Submit all API calls simultaneously
-            future_to_source = {
-                executor.submit(fetch_with_timeout, source_name, fetch_func): source_name 
-                for source_name, fetch_func in data_sources
-            }
-            
-            # Return the first successful result (race condition)
-            for future in concurrent.futures.as_completed(future_to_source, timeout=6):
-                try:
-                    result = future.result()
-                    if result:
-                        source_name, data = result
-                        # Cancel remaining futures to save resources
-                        for f in future_to_source:
-                            if f != future and not f.done():
-                                f.cancel()
-                        return data
-                except Exception:
-                    continue
-    except Exception:
-        pass
-    
-    # If all sources fail, return None (no fake data)
+    # If all sources fail, return None
     return None
 
 ##########################################################################################
@@ -927,7 +909,7 @@ else:
 # Settings
 st.sidebar.markdown("---")
 st.sidebar.subheader("Settings")
-auto_refresh = st.sidebar.checkbox("Auto-refresh data (30s)", value=False)
+auto_refresh = st.sidebar.checkbox("Auto-refresh data (30s)", value=True)
 
 if auto_refresh:
     time.sleep(30)
