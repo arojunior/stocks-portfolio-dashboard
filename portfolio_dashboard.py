@@ -85,55 +85,55 @@ def fetch_enhanced_stock_data(ticker: str, market: str = "US", period: str = "1m
             ticker_symbol = f"{ticker}.SA"
         else:
             ticker_symbol = ticker
-        
+
         # Fetch extended historical data for technical analysis
         stock = yf.Ticker(ticker_symbol)
         hist = stock.history(period=period, interval="1d")
-        
+
         if hist.empty:
             return None
-        
+
         # Process data similar to DeepCharts approach
         if isinstance(hist.columns, pd.MultiIndex):
             hist.columns = hist.columns.droplevel(1)
-        
+
         # Ensure timezone awareness
         if hist.index.tzinfo is None:
             hist.index = hist.index.tz_localize('UTC')
         hist.index = hist.index.tz_convert('US/Eastern')
-        
+
         # Calculate basic metrics
         current_price = float(hist['Close'].iloc[-1])
         prev_close = float(hist['Close'].iloc[-2]) if len(hist) > 1 else current_price
         volume = int(hist['Volume'].iloc[-1]) if not hist['Volume'].empty else 0
-        
+
         # Add technical indicators (DeepCharts style)
         close_series = hist['Close'].squeeze()
-        
+
         # Simple Moving Averages
         sma_20 = ta.trend.sma_indicator(close_series, window=20)
         sma_50 = ta.trend.sma_indicator(close_series, window=50)
-        
+
         # Exponential Moving Average
         ema_20 = ta.trend.ema_indicator(close_series, window=20)
-        
+
         # Bollinger Bands
         bb_high = ta.volatility.bollinger_hband(close_series, window=20)
         bb_low = ta.volatility.bollinger_lband(close_series, window=20)
         bb_mid = ta.volatility.bollinger_mavg(close_series, window=20)
-        
+
         # RSI
         rsi = ta.momentum.rsi(close_series, window=14)
-        
+
         # MACD
         macd = ta.trend.macd(close_series)
         macd_signal = ta.trend.macd_signal(close_series)
-        
+
         # Volume Weighted Average Price (VWAP)
         vwap = ta.volume.volume_weighted_average_price(
             hist['High'], hist['Low'], hist['Close'], hist['Volume']
         )
-        
+
         return {
             "current_price": current_price,
             "previous_close": prev_close,
@@ -157,7 +157,7 @@ def fetch_enhanced_stock_data(ticker: str, market: str = "US", period: str = "1m
         }
     except Exception as e:
         st.warning(f"Could not fetch enhanced data for {ticker}: {str(e)}")
-    
+
     return None
 
 def fetch_from_yahoo_finance(ticker: str, market: str = "US") -> Optional[Dict]:
@@ -235,13 +235,13 @@ def create_candlestick_chart(ticker: str, market: str = "US", period: str = "1mo
         enhanced_data = fetch_enhanced_stock_data(ticker, market, period)
         if not enhanced_data or "historical_data" not in enhanced_data:
             return None
-        
+
         hist = enhanced_data["historical_data"]
         indicators = enhanced_data["technical_indicators"]
-        
+
         # Create candlestick chart
         fig = go.Figure()
-        
+
         # Add candlestick
         fig.add_trace(go.Candlestick(
             x=hist.index,
@@ -251,7 +251,7 @@ def create_candlestick_chart(ticker: str, market: str = "US", period: str = "1mo
             close=hist['Close'],
             name="Price"
         ))
-        
+
         # Add technical indicators if available
         if indicators.get("sma_20"):
             sma_20_series = ta.trend.sma_indicator(hist['Close'], window=20)
@@ -262,7 +262,7 @@ def create_candlestick_chart(ticker: str, market: str = "US", period: str = "1mo
                 name='SMA 20',
                 line=dict(color='orange', width=2)
             ))
-        
+
         if indicators.get("ema_20"):
             ema_20_series = ta.trend.ema_indicator(hist['Close'], window=20)
             fig.add_trace(go.Scatter(
@@ -272,13 +272,13 @@ def create_candlestick_chart(ticker: str, market: str = "US", period: str = "1mo
                 name='EMA 20',
                 line=dict(color='purple', width=2)
             ))
-        
+
         # Add Bollinger Bands
         if all(indicators.get(key) for key in ["bb_high", "bb_low", "bb_mid"]):
             bb_high_series = ta.volatility.bollinger_hband(hist['Close'], window=20)
             bb_low_series = ta.volatility.bollinger_lband(hist['Close'], window=20)
             bb_mid_series = ta.volatility.bollinger_mavg(hist['Close'], window=20)
-            
+
             fig.add_trace(go.Scatter(
                 x=hist.index,
                 y=bb_high_series,
@@ -287,7 +287,7 @@ def create_candlestick_chart(ticker: str, market: str = "US", period: str = "1mo
                 line=dict(color='gray', width=1, dash='dash'),
                 showlegend=False
             ))
-            
+
             fig.add_trace(go.Scatter(
                 x=hist.index,
                 y=bb_low_series,
@@ -298,7 +298,7 @@ def create_candlestick_chart(ticker: str, market: str = "US", period: str = "1mo
                 fillcolor='rgba(128,128,128,0.1)',
                 showlegend=False
             ))
-            
+
             fig.add_trace(go.Scatter(
                 x=hist.index,
                 y=bb_mid_series,
@@ -306,7 +306,7 @@ def create_candlestick_chart(ticker: str, market: str = "US", period: str = "1mo
                 name='BB Middle',
                 line=dict(color='gray', width=1)
             ))
-        
+
         # Add VWAP
         if indicators.get("vwap"):
             vwap_series = ta.volume.volume_weighted_average_price(
@@ -319,7 +319,7 @@ def create_candlestick_chart(ticker: str, market: str = "US", period: str = "1mo
                 name='VWAP',
                 line=dict(color='blue', width=2, dash='dot')
             ))
-        
+
         # Update layout
         fig.update_layout(
             title=f'{ticker} - Technical Analysis Chart',
@@ -329,9 +329,9 @@ def create_candlestick_chart(ticker: str, market: str = "US", period: str = "1mo
             showlegend=True,
             xaxis_rangeslider_visible=False
         )
-        
+
         return fig
-        
+
     except Exception as e:
         st.error(f"Error creating chart for {ticker}: {str(e)}")
         return None
@@ -342,17 +342,17 @@ def create_technical_indicators_summary(ticker: str, market: str = "US") -> Opti
         enhanced_data = fetch_enhanced_stock_data(ticker, market, period="3mo")
         if not enhanced_data:
             return None
-        
+
         indicators = enhanced_data["technical_indicators"]
         current_price = enhanced_data["current_price"]
-        
+
         # Create summary with signals
         summary = {
             "current_price": current_price,
             "signals": [],
             "indicators": indicators
         }
-        
+
         # Generate trading signals
         if indicators.get("rsi"):
             rsi = indicators["rsi"]
@@ -362,7 +362,7 @@ def create_technical_indicators_summary(ticker: str, market: str = "US") -> Opti
                 summary["signals"].append({"indicator": "RSI", "signal": "OVERSOLD", "value": rsi, "color": "green"})
             else:
                 summary["signals"].append({"indicator": "RSI", "signal": "NEUTRAL", "value": rsi, "color": "gray"})
-        
+
         # MACD Signal
         if indicators.get("macd") and indicators.get("macd_signal"):
             macd = indicators["macd"]
@@ -371,7 +371,7 @@ def create_technical_indicators_summary(ticker: str, market: str = "US") -> Opti
                 summary["signals"].append({"indicator": "MACD", "signal": "BULLISH", "value": macd, "color": "green"})
             else:
                 summary["signals"].append({"indicator": "MACD", "signal": "BEARISH", "value": macd, "color": "red"})
-        
+
         # Price vs Moving Averages
         if indicators.get("sma_20"):
             sma_20 = indicators["sma_20"]
@@ -379,9 +379,9 @@ def create_technical_indicators_summary(ticker: str, market: str = "US") -> Opti
                 summary["signals"].append({"indicator": "SMA 20", "signal": "ABOVE", "value": sma_20, "color": "green"})
             else:
                 summary["signals"].append({"indicator": "SMA 20", "signal": "BELOW", "value": sma_20, "color": "red"})
-        
+
         return summary
-        
+
     except Exception as e:
         st.error(f"Error creating technical summary for {ticker}: {str(e)}")
         return None
@@ -679,37 +679,37 @@ if selected_portfolio:
             if metrics['best_performer'] is not None and metrics['worst_performer'] is not None:
                 st.subheader("Performance Highlights")
                 col1, col2 = st.columns(2)
-                
+
                 with col1:
                     st.success("🏆 Best Performer")
                     best = metrics['best_performer']
                     st.write(f"**{best['Ticker']}**: {best['Change %']:.2f}% gain")
                     st.write(f"Value: {currency} {best['Current Value']:,.2f}")
-                
+
                 with col2:
                     st.error("📉 Worst Performer")
                     worst = metrics['worst_performer']
                     st.write(f"**{worst['Ticker']}**: {worst['Change %']:.2f}% loss")
                     st.write(f"Value: {currency} {worst['Current Value']:,.2f}")
-            
+
             # Technical Analysis Section (DeepCharts inspired)
             st.markdown("---")
             st.subheader("📊 Technical Analysis (DeepCharts Enhanced)")
-            
+
             # Stock selection for detailed analysis
             selected_stock = st.selectbox(
                 "Select stock for detailed technical analysis:",
                 options=list(portfolio_stocks.keys()),
                 key="tech_analysis_stock"
             )
-            
+
             if selected_stock:
                 col1, col2 = st.columns([2, 1])
-                
+
                 with col1:
                     # Candlestick chart with technical indicators
                     st.subheader(f"{selected_stock} - Advanced Chart")
-                    
+
                     # Chart period selection
                     chart_period = st.selectbox(
                         "Chart Period:",
@@ -717,7 +717,7 @@ if selected_portfolio:
                         index=1,
                         key="chart_period"
                     )
-                    
+
                     # Create and display candlestick chart
                     with st.spinner("Loading advanced chart..."):
                         fig = create_candlestick_chart(selected_stock, market_type, chart_period)
@@ -725,21 +725,21 @@ if selected_portfolio:
                             st.plotly_chart(fig, width="stretch")
                         else:
                             st.warning(f"Could not load chart for {selected_stock}")
-                
+
                 with col2:
                     # Technical indicators summary
                     st.subheader("Technical Indicators")
-                    
+
                     with st.spinner("Calculating indicators..."):
                         tech_summary = create_technical_indicators_summary(selected_stock, market_type)
-                        
+
                         if tech_summary:
                             # Current price
                             st.metric(
                                 "Current Price",
                                 f"{currency} {tech_summary['current_price']:.2f}"
                             )
-                            
+
                             # Technical signals
                             st.subheader("Trading Signals")
                             for signal in tech_summary['signals']:
@@ -750,26 +750,26 @@ if selected_portfolio:
                                     st.error(f"**{signal['indicator']}**: {signal['signal']}")
                                 else:
                                     st.info(f"**{signal['indicator']}**: {signal['signal']}")
-                                
+
                                 if signal['value']:
                                     st.caption(f"Value: {signal['value']:.2f}")
-                            
+
                             # Raw indicator values
                             st.subheader("Indicator Values")
                             indicators = tech_summary['indicators']
-                            
+
                             if indicators.get('rsi'):
                                 st.metric("RSI (14)", f"{indicators['rsi']:.2f}")
-                            
+
                             if indicators.get('sma_20'):
                                 st.metric("SMA 20", f"{currency} {indicators['sma_20']:.2f}")
-                            
+
                             if indicators.get('ema_20'):
                                 st.metric("EMA 20", f"{currency} {indicators['ema_20']:.2f}")
-                            
+
                             if indicators.get('vwap'):
                                 st.metric("VWAP", f"{currency} {indicators['vwap']:.2f}")
-                        
+
                         else:
                             st.warning(f"Could not load technical analysis for {selected_stock}")
 
