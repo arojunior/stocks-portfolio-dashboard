@@ -2,6 +2,27 @@
 
 A comprehensive multi-portfolio management dashboard that replaces your Google Spreadsheet for tracking stock investments across different markets (Brazilian and US stocks).
 
+## 🚧 Current Status (September 2025)
+
+**✅ Fully Functional:**
+- Multi-portfolio management (Brazilian & US stocks)
+- Real-time stock price fetching with multiple API sources
+- Portfolio analytics and performance metrics
+- AI-powered analysis (Ollama + Google Gemini)
+- News feed with sentiment analysis
+- Technical analysis charts
+- Configurable refresh intervals
+- Progressive loading for large portfolios
+
+**🔄 In Development:**
+- Sector analysis and diversification metrics
+- Dividend yield tracking and passive income projections
+- Enhanced error handling and user feedback
+
+**🐛 Known Issues:**
+- Streamlit cache occasionally prevents UI updates (manual refresh needed)
+- Some deprecation warnings in console (non-critical)
+
 ## Features
 
 ### 🚀 Core Features
@@ -31,6 +52,8 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
 - **Portfolio Composition**: Pie chart showing weight of each stock by current value
 - **Performance Overview**: Horizontal bar chart showing gain/loss percentage for each stock
 - **Detailed Table**: Comprehensive view with all stock data, formatted with conditional coloring
+- **Sector Analysis**: Portfolio diversification by industry sectors (🚧 *In Development*)
+- **Dividend Analysis**: Dividend yields and passive income projections (🚧 *In Development*)
 
 #### Stock Management
 - Add new stocks with ticker, quantity, and average price

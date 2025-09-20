@@ -1019,6 +1019,14 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, market: str) -> pd.DataFr
         gain_loss = current_value - total_invested
         gain_loss_percent = (gain_loss / total_invested) * 100 if total_invested != 0 else 0
 
+        # Add basic sector info for your Brazilian stocks
+        if market == "Brazilian":
+            ticker_clean = ticker.replace('.SA', '').upper()
+            sectors = {'VAMO3': 'Real Estate', 'SANB11': 'Financial Services', 'EGIE3': 'Utilities', 'PRIO3': 'Energy'}
+            sector = sectors.get(ticker_clean, 'Unknown')
+        else:
+            sector = 'Unknown'
+
         portfolio_data.append({
             "Ticker": ticker,
             "Quantity": quantity,
@@ -1030,7 +1038,10 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, market: str) -> pd.DataFr
             "Change %": gain_loss_percent,
             "Day Change": day_change,
             "Day Change %": day_change_percent,
-            "Currency": currency
+            "Currency": currency,
+            "Sector": sector,
+            "Dividend Yield %": 0,
+            "Annual Dividend": 0
         })
 
     return pd.DataFrame(portfolio_data)

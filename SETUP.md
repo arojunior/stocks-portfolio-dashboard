@@ -3,6 +3,11 @@
 ## Prerequisites
 - Python 3.8 or higher
 - Git
+- **For Enhanced Data Sources (Optional)**:
+  - BRAPI API key (Brazilian stocks - free)
+  - Twelve Data API key (premium stock data)
+  - Alpha Vantage API key (premium stock data + news)
+  - NewsAPI key (news feed)
 - **For AI Features (Recommended)**:
   - Ollama (for local AI analysis)
   - Google Gemini API key (for news sentiment analysis)
