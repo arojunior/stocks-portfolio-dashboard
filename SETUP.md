@@ -64,11 +64,12 @@ ollama run llama3.2 "Hello! Can you help me analyze stock portfolios?"
 #### 4.2 Configure API Keys (Optional but Recommended)
 Create a `.env` file in the project root:
 ```bash
-# Create .env file with your API keys
-echo "GOOGLE_API_KEY=your_gemini_api_key_here" > .env
-echo "NEWSAPI_KEY=your_newsapi_key_here" >> .env
-echo "ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here" >> .env
-echo "TWELVE_DATA_API_KEY=your_twelve_data_key_here" >> .env
+        # Create .env file with your API keys
+        echo "GOOGLE_API_KEY=your_gemini_api_key_here" > .env
+        echo "NEWSAPI_KEY=your_newsapi_key_here" >> .env
+        echo "ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here" >> .env
+        echo "TWELVE_DATA_API_KEY=your_twelve_data_key_here" >> .env
+        echo "BRAPI_API_KEY=your_brapi_api_key_here" >> .env
 ```
 
 **How to get API keys:**
@@ -76,6 +77,7 @@ echo "TWELVE_DATA_API_KEY=your_twelve_data_key_here" >> .env
 - **NewsAPI**: https://newsapi.org/register (Free tier: 100 requests/day)
 - **Alpha Vantage**: https://www.alphavantage.co/support/#api-key (Free tier: 25 requests/day)
 - **Twelve Data**: https://twelvedata.com/pricing (Free tier: 8 requests/minute)
+- **BRAPI**: https://brapi.dev/dashboard (Brazilian stocks, enhanced features with API key)
 
 ### 5. Run the Dashboard
 ```bash
@@ -231,11 +233,12 @@ streamlit run portfolio_dashboard.py
 
 ## Environment Variables Reference
 ```bash
-# .env file - Copy this template and add your keys
-GOOGLE_API_KEY=your_gemini_api_key_here
-NEWSAPI_KEY=your_newsapi_key_here
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
-TWELVE_DATA_API_KEY=your_twelve_data_key_here
+        # .env file - Copy this template and add your keys
+        GOOGLE_API_KEY=your_gemini_api_key_here
+        NEWSAPI_KEY=your_newsapi_key_here
+        ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
+        TWELVE_DATA_API_KEY=your_twelve_data_key_here
+        BRAPI_API_KEY=your_brapi_api_key_here
 ```
 
 ## 🚀 What You Get

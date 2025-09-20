@@ -54,7 +54,7 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
 ### Prerequisites
 - Python 3.8 or higher
 - Git
-- **For AI Features**: 
+- **For AI Features**:
   - Ollama (for local AI analysis)
   - Google Gemini API key (for news sentiment analysis)
 
@@ -90,10 +90,11 @@ brew services start ollama
 # Download LLaMA model
 ollama pull llama3.2
 
-# 5. Configure API keys (create .env file)
-echo "GOOGLE_API_KEY=your_gemini_api_key_here" > .env
-echo "NEWSAPI_KEY=your_newsapi_key_here" >> .env
-echo "ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here" >> .env
+        # 5. Configure API keys (create .env file)
+        echo "GOOGLE_API_KEY=your_gemini_api_key_here" > .env
+        echo "NEWSAPI_KEY=your_newsapi_key_here" >> .env
+        echo "ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here" >> .env
+        echo "BRAPI_API_KEY=your_brapi_api_key_here" >> .env
 ```
 
 > 📋 **See [SETUP.md](SETUP.md) for detailed installation instructions, AI setup, and troubleshooting.**

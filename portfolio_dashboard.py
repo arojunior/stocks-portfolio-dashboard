@@ -2,6 +2,7 @@
 # Replaces Google Spreadsheet for stock portfolio tracking
 # Supports multiple portfolios (Brazilian & US markets)
 # Enhanced with DeepCharts project features: Technical Analysis, AI Insights, Advanced Charts
+# Optimized for free tier APIs with intelligent caching and rate limiting
 
 import streamlit as st
 import plotly.express as px
@@ -117,6 +118,10 @@ class PortfolioManager:
 
 ##########################################################################################
 ## REAL-TIME STOCK DATA FETCHING ##
+## Optimized for Free Tier APIs:
+## - Stock Data: 15min cache (Yahoo Finance free, Alpha Vantage 25/day, Twelve Data 8/min)
+## - News Data: 1hr cache (NewsAPI 100/day, Alpha Vantage 25/day)
+## - AI Analysis: 30min-2hr cache (Ollama unlimited local, Gemini 15/min)
 ##########################################################################################
 
 def fetch_enhanced_stock_data(ticker: str, market: str = "US", period: str = "1mo") -> Optional[Dict]:
@@ -198,7 +203,7 @@ def fetch_enhanced_stock_data(ticker: str, market: str = "US", period: str = "1m
                 "macd_signal": float(macd_signal.iloc[-1]) if not macd_signal.empty and not pd.isna(macd_signal.iloc[-1]) else None,
                 "vwap": float(vwap.iloc[-1]) if not vwap.empty and not pd.isna(vwap.iloc[-1]) else None
             }
-                }
+        }
     except Exception as e:
         # Silently handle yfinance errors - they're common for delisted/problematic stocks
         # Only log if it's not a common yfinance JSON parsing error
@@ -252,14 +257,14 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
             current_price = float(data["close"])
             prev_close = float(data.get("previous_close", current_price))
 
-            return {
-                "current_price": current_price,
-                "previous_close": prev_close,
-                "change": current_price - prev_close,
-                "change_percent": ((current_price - prev_close) / prev_close) * 100 if prev_close != 0 else 0,
-                "volume": int(data.get("volume", 0)) if data.get("volume") else 0,
-                "currency": 'USD' if market == "US" else 'BRL'
-            }
+        return {
+            "current_price": current_price,
+            "previous_close": prev_close,
+            "change": current_price - prev_close,
+            "change_percent": ((current_price - prev_close) / prev_close) * 100 if prev_close != 0 else 0,
+            "volume": int(data.get("volume", 0)) if data.get("volume") else 0,
+            "currency": 'USD' if market == "US" else 'BRL'
+        }
 
         # Fallback to simple price endpoint
         price_url = "https://api.twelvedata.com/price"
@@ -279,6 +284,51 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
 
     except Exception as e:
         st.warning(f"Twelve Data API error for {ticker}: {str(e)}")
+
+    return None
+
+def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
+    """Fetch Brazilian stock data from BRAPI (Brazilian stock API with API key support)"""
+    if market != "Brazilian":
+        return None
+
+    try:
+        # Get API key from environment
+        api_key = os.getenv('BRAPI_API_KEY')
+
+        # Remove .SA suffix if present, BRAPI uses just the ticker
+        symbol = ticker.replace('.SA', '')
+
+        # Build URL with API key if available
+        if api_key:
+            url = f"https://brapi.dev/api/quote/{symbol}?token={api_key}"
+        else:
+            url = f"https://brapi.dev/api/quote/{symbol}"
+
+        response = requests.get(url, timeout=10)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if 'results' in data and data['results']:
+                stock_data = data['results'][0]
+
+                current_price = float(stock_data.get('regularMarketPrice', 0))
+                prev_close = float(stock_data.get('regularMarketPreviousClose', current_price))
+
+                if current_price > 0:
+                    return {
+                "current_price": current_price,
+                "previous_close": prev_close,
+                        "change": current_price - prev_close,
+                        "change_percent": ((current_price - prev_close) / prev_close) * 100 if prev_close != 0 else 0,
+                        "volume": int(stock_data.get('regularMarketVolume', 0)),
+                        "currency": 'BRL'
+                    }
+
+    except Exception as e:
+        # Silently handle BRAPI errors
+        pass
 
     return None
 
@@ -313,21 +363,22 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
                 current_price = float(quote["05. price"])
                 prev_close = float(quote.get("08. previous close", current_price))
 
-                return {
-                    "current_price": current_price,
-                    "previous_close": prev_close,
+        return {
+            "current_price": current_price,
+            "previous_close": prev_close,
                     "change": float(quote.get("09. change", 0)),
                     "change_percent": float(quote.get("10. change percent", "0").replace("%", "")),
                     "volume": int(quote.get("06. volume", 0)) if quote.get("06. volume") else 0,
-                    "currency": 'USD' if market == "US" else 'BRL'
-                }
+                "currency": 'USD' if market == "US" else 'BRL'
+            }
 
     except Exception as e:
-        st.warning(f"Alpha Vantage API error for {ticker}: {str(e)}")
+        # Silently handle Alpha Vantage errors (likely rate limited)
+        pass
 
     return None
 
-@st.cache_data(ttl=600, show_spinner=False)  # Cache for 10 minutes to reduce API pressure
+@st.cache_data(ttl=1800, show_spinner=False)  # Cache for 30 minutes to optimize free tier usage
 def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     """Fetch real-time stock data with smart fallback strategy"""
 
@@ -335,16 +386,22 @@ def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     has_twelve_data = bool(os.getenv('TWELVE_DATA_API_KEY'))
     has_alpha_vantage = bool(os.getenv('ALPHA_VANTAGE_API_KEY'))
 
-    # Smart prioritization: Try Yahoo Finance first (no rate limits), then paid APIs
-    data_sources = [
-        ("Yahoo Finance", fetch_from_yahoo_finance),  # Try free option first
-    ]
+    # Smart prioritization based on market and API availability
+    data_sources = []
 
-    # Add paid APIs if available (but be careful with rate limits)
-    if has_alpha_vantage:
-        data_sources.append(("Alpha Vantage", fetch_from_alpha_vantage))
-    if has_twelve_data:
-        data_sources.append(("Twelve Data", fetch_from_twelve_data))
+    if market == "Brazilian":
+        # For Brazilian stocks: BRAPI (free) -> Alpha Vantage -> Yahoo Finance
+        data_sources.append(("BRAPI", fetch_from_brapi))
+        if has_alpha_vantage:
+            data_sources.append(("Alpha Vantage", fetch_from_alpha_vantage))
+        data_sources.append(("Yahoo Finance", fetch_from_yahoo_finance))
+    else:
+        # For US stocks: Twelve Data -> Alpha Vantage -> Yahoo Finance
+        if has_twelve_data:
+            data_sources.append(("Twelve Data", fetch_from_twelve_data))
+        if has_alpha_vantage:
+            data_sources.append(("Alpha Vantage", fetch_from_alpha_vantage))
+        data_sources.append(("Yahoo Finance", fetch_from_yahoo_finance))
 
     # Try sources sequentially to avoid rate limit issues
     for source_name, fetch_func in data_sources:
@@ -362,7 +419,7 @@ def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
 ## STOCK NEWS FEED ##
 ##########################################################################################
 
-@st.cache_data(ttl=1800, show_spinner=False)  # Cache for 30 minutes
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour to optimize free tier (25 requests/day)
 def fetch_stock_news_alpha_vantage(ticker: str, limit: int = 10) -> List[Dict]:
     """Fetch stock news from Alpha Vantage News API"""
     try:
@@ -401,7 +458,7 @@ def fetch_stock_news_alpha_vantage(ticker: str, limit: int = 10) -> List[Dict]:
         st.warning(f"Alpha Vantage News error for {ticker}: {str(e)}")
         return []
 
-@st.cache_data(ttl=1800, show_spinner=False)  # Cache for 30 minutes
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour to optimize free tier (100 requests/day)
 def fetch_stock_news_newsapi(ticker: str, limit: int = 10) -> List[Dict]:
     """Fetch stock news from NewsAPI (free tier: 100 requests/day)"""
     try:
@@ -538,8 +595,19 @@ def fetch_portfolio_news(portfolio_stocks: Dict, limit_per_stock: int = 5) -> Di
     """Fetch news for all stocks in portfolio with multiple fallback sources"""
     portfolio_news = {}
 
-    # Limit to first 5 stocks to avoid API rate limits
-    stock_tickers = list(portfolio_stocks.keys())[:3]  # Reduced to 3 to be safer
+    # Optimize for free tiers: limit stocks based on API availability
+    has_newsapi = bool(os.getenv('NEWSAPI_KEY'))
+    has_alpha_vantage = bool(os.getenv('ALPHA_VANTAGE_API_KEY'))
+
+    # Adjust limits based on available APIs
+    if has_newsapi and has_alpha_vantage:
+        max_stocks = 4  # More generous with multiple APIs
+    elif has_newsapi or has_alpha_vantage:
+        max_stocks = 3  # Conservative with single API
+    else:
+        max_stocks = 2  # Very conservative with web scraping only
+
+    stock_tickers = list(portfolio_stocks.keys())[:max_stocks]
 
     for ticker in stock_tickers:
         # Try multiple sources in order of preference
@@ -577,11 +645,11 @@ def check_ollama_availability() -> Dict[str, bool]:
         if response.status_code == 200:
             models = response.json().get('models', [])
             model_names = [model.get('name', '') for model in models]
-            return {
-                'available': True,
-                'models': model_names,
-                'has_llama': any('llama' in name.lower() for name in model_names)
-            }
+        return {
+            'available': True,
+            'models': model_names,
+            'has_llama': any('llama' in name.lower() for name in model_names)
+        }
     except:
         pass
 
@@ -598,7 +666,7 @@ def setup_gemini_ai() -> bool:
         pass
     return False
 
-@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour (Ollama is free but intensive)
 def analyze_portfolio_with_ollama(portfolio_data: pd.DataFrame, portfolio_name: str) -> str:
     """Use Ollama to analyze portfolio performance and provide insights"""
     if not OLLAMA_AVAILABLE:
@@ -655,7 +723,7 @@ def analyze_portfolio_with_ollama(portfolio_data: pd.DataFrame, portfolio_name: 
     except Exception as e:
         return f"Error analyzing portfolio with Ollama: {str(e)}"
 
-@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
+@st.cache_data(ttl=14400, show_spinner=False)  # Cache for 4 hours to respect Gemini free tier (15 requests/minute)
 def analyze_news_sentiment_with_gemini(news_articles: List[Dict], ticker: str) -> str:
     """Use Google Gemini to analyze news sentiment and market impact"""
     if not GEMINI_AVAILABLE:
@@ -922,9 +990,13 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, market: str) -> pd.DataFr
 
     portfolio_data = []
 
-    for ticker, stock_info in portfolio_stocks.items():
+    for i, (ticker, stock_info) in enumerate(portfolio_stocks.items()):
         quantity = stock_info['quantity']
         avg_price = stock_info['avg_price']
+
+        # Add small delay between API calls to respect rate limits (except for first stock)
+        if i > 0:
+            time.sleep(0.5)  # 500ms delay between calls
 
         # Fetch real-time data
         real_time_data = fetch_stock_data(ticker, market)
@@ -941,26 +1013,150 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, market: str) -> pd.DataFr
             day_change_percent = 0
             currency = 'BRL' if market == "Brazilian" else 'USD'
 
-            total_invested = quantity * avg_price
-            current_value = quantity * current_price
-            gain_loss = current_value - total_invested
-            gain_loss_percent = (gain_loss / total_invested) * 100 if total_invested != 0 else 0
+        # Calculate portfolio metrics (moved outside the if/else block)
+        total_invested = quantity * avg_price
+        current_value = quantity * current_price
+        gain_loss = current_value - total_invested
+        gain_loss_percent = (gain_loss / total_invested) * 100 if total_invested != 0 else 0
 
-            portfolio_data.append({
-                "Ticker": ticker,
-                "Quantity": quantity,
-                "Avg Price": avg_price,
-                "Current Price": current_price,
-                "Total Invested": total_invested,
-                "Current Value": current_value,
-                "Gain/Loss": gain_loss,
-                "Change %": gain_loss_percent,
+        portfolio_data.append({
+            "Ticker": ticker,
+            "Quantity": quantity,
+            "Avg Price": avg_price,
+            "Current Price": current_price,
+            "Total Invested": total_invested,
+            "Current Value": current_value,
+            "Gain/Loss": gain_loss,
+            "Change %": gain_loss_percent,
             "Day Change": day_change,
             "Day Change %": day_change_percent,
             "Currency": currency
-            })
+        })
 
     return pd.DataFrame(portfolio_data)
+
+def create_portfolio_dataframe_progressive(portfolio_stocks: Dict, market: str, progress_placeholder=None, table_placeholder=None) -> pd.DataFrame:
+    """Create portfolio dataframe with progressive loading and real-time updates"""
+    if not portfolio_stocks:
+        return pd.DataFrame()
+
+    portfolio_data = []
+    total_stocks = len(portfolio_stocks)
+
+    for i, (ticker, stock_info) in enumerate(portfolio_stocks.items()):
+        quantity = stock_info['quantity']
+        avg_price = stock_info['avg_price']
+
+        # Update progress
+        if progress_placeholder:
+            progress_percentage = (i / total_stocks) * 100
+            progress_placeholder.progress(progress_percentage / 100, f"Loading {ticker}... ({i+1}/{total_stocks})")
+
+        # Add small delay between API calls to respect rate limits (except for first stock)
+        if i > 0:
+            time.sleep(0.5)  # 500ms delay between calls
+
+        # Fetch real-time data
+        real_time_data = fetch_stock_data(ticker, market)
+
+        if real_time_data:
+            current_price = real_time_data['current_price']
+            day_change = real_time_data['change']
+            day_change_percent = real_time_data['change_percent']
+            currency = real_time_data['currency']
+            status = "✅"
+        else:
+            # If no real-time data available, use average price as placeholder
+            current_price = avg_price
+            day_change = 0
+            day_change_percent = 0
+            currency = 'BRL' if market == "Brazilian" else 'USD'
+            status = "⚠️"
+
+        # Calculate portfolio metrics
+        total_invested = quantity * avg_price
+        current_value = quantity * current_price
+        gain_loss = current_value - total_invested
+        gain_loss_percent = (gain_loss / total_invested) * 100 if total_invested != 0 else 0
+
+        portfolio_data.append({
+            "Status": status,
+            "Ticker": ticker,
+            "Quantity": quantity,
+            "Avg Price": avg_price,
+            "Current Price": current_price,
+            "Total Invested": total_invested,
+            "Current Value": current_value,
+            "Gain/Loss": gain_loss,
+            "Change %": gain_loss_percent,
+            "Day Change": day_change,
+            "Day Change %": day_change_percent,
+            "Currency": currency
+        })
+
+        # Update table progressively (show partial results)
+        if table_placeholder and len(portfolio_data) >= 3:  # Show table after loading at least 3 stocks
+            current_df = pd.DataFrame(portfolio_data)
+            table_placeholder.dataframe(
+                current_df.style.format({
+                    'Avg Price': '{:.2f}',
+                    'Current Price': '{:.2f}',
+                    'Total Invested': '{:,.2f}',
+                    'Current Value': '{:,.2f}',
+                    'Gain/Loss': '{:,.2f}',
+                    'Change %': '{:.2f}%',
+                    'Day Change': '{:.2f}',
+                    'Day Change %': '{:.2f}%'
+                }).map(lambda x: 'color: green' if isinstance(x, (int, float)) and x > 0 else 'color: red' if isinstance(x, (int, float)) and x < 0 else '', subset=['Gain/Loss', 'Change %', 'Day Change', 'Day Change %']),
+                use_container_width=True,
+                hide_index=True
+            )
+
+    # Final progress update
+    if progress_placeholder:
+        progress_placeholder.success(f"✅ Loaded all {total_stocks} stocks successfully!")
+
+    return pd.DataFrame(portfolio_data)
+
+def fetch_stock_data_with_error_tracking(ticker: str, market: str) -> tuple[Optional[Dict], str]:
+    """Fetch stock data with detailed error tracking"""
+    try:
+        data = fetch_stock_data(ticker, market)
+        if data and data.get("current_price", 0) > 0:
+            return data, "✅ Success"
+        else:
+            return None, "⚠️ No data available"
+    except Exception as e:
+        error_msg = str(e)
+        if "rate limit" in error_msg.lower():
+            return None, "🚫 Rate limited"
+        elif "timeout" in error_msg.lower():
+            return None, "⏱️ Timeout"
+        elif "network" in error_msg.lower() or "connection" in error_msg.lower():
+            return None, "🌐 Network error"
+        else:
+            return None, f"❌ Error: {error_msg[:30]}..."
+
+def create_portfolio_summary_with_errors(portfolio_stocks: Dict, market: str) -> Dict:
+    """Create a summary of portfolio loading with error details"""
+    summary = {
+        "total_stocks": len(portfolio_stocks),
+        "successful": 0,
+        "failed": 0,
+        "failed_stocks": [],
+        "error_details": {}
+    }
+
+    for ticker in portfolio_stocks.keys():
+        data, status = fetch_stock_data_with_error_tracking(ticker, market)
+        if data:
+            summary["successful"] += 1
+        else:
+            summary["failed"] += 1
+            summary["failed_stocks"].append(ticker)
+            summary["error_details"][ticker] = status
+
+    return summary
 
 ##########################################################################################
 ## STREAMLIT DASHBOARD UI ##
@@ -1022,7 +1218,11 @@ if selected_portfolio:
             "Stock Ticker",
             help="Enter ticker symbol (e.g., AAPL for US, PETR4 for Brazilian)"
         )
-        quantity_input = st.number_input("Quantity", min_value=1, value=1)
+        # Support fractional shares for US market, integers for Brazilian market
+        if selected_portfolio and "US" in selected_portfolio.upper():
+            quantity_input = st.number_input("Quantity", min_value=0.001, value=1.0, step=0.001, format="%.3f")
+        else:
+            quantity_input = st.number_input("Quantity", min_value=1, value=1)
         avg_price_input = st.number_input("Average Price", min_value=0.01, value=1.0, step=0.01)
 
         if st.button("Add/Update Stock"):
@@ -1059,9 +1259,79 @@ if selected_portfolio:
 
         # Create portfolio dataframe
         with st.spinner("Fetching real-time stock data..."):
-            df = create_portfolio_dataframe(portfolio_stocks, market_type)
+            # Show data source status
+            has_twelve_data = bool(os.getenv('TWELVE_DATA_API_KEY'))
+            has_alpha_vantage = bool(os.getenv('ALPHA_VANTAGE_API_KEY'))
 
+            if has_twelve_data or has_alpha_vantage:
+                data_source_info = "Using "
+                if has_twelve_data:
+                    data_source_info += "Twelve Data"
+                if has_alpha_vantage:
+                    data_source_info += " + Alpha Vantage" if has_twelve_data else "Alpha Vantage"
+                data_source_info += " APIs"
+            else:
+                data_source_info = "Using Yahoo Finance (may be rate limited)"
+
+            # Show data source and last update time
+            current_time = datetime.now().strftime("%H:%M:%S")
+            st.info(f"📊 {data_source_info} | Last updated: {current_time}")
+
+            # Use progressive loading for large portfolios
+            num_stocks = len(portfolio_stocks)
+            if num_stocks > 8:  # Use progressive loading for portfolios with many stocks
+                progress_placeholder = st.empty()
+                table_placeholder = st.empty()
+
+                # Show initial message
+                progress_placeholder.info(f"🔄 Loading data for {num_stocks} stocks with progressive display...")
+
+                # Use progressive loading
+                df = create_portfolio_dataframe_progressive(
+                    portfolio_stocks,
+                    market_type,
+                    progress_placeholder,
+                    table_placeholder
+                )
+
+                # Clear progress after completion
+                time.sleep(1)  # Brief pause to show completion message
+                progress_placeholder.empty()
+                table_placeholder.empty()  # Clear to show final formatted table below
+            else:
+                # Use regular loading for smaller portfolios
+                if num_stocks > 3:
+                    st.info(f"🔄 Loading data for {num_stocks} stocks...")
+                df = create_portfolio_dataframe(portfolio_stocks, market_type)
+
+        # Show loading summary and error details if any
         if not df.empty:
+            # Check for any loading issues and display summary
+            loading_summary = create_portfolio_summary_with_errors(portfolio_stocks, market_type)
+
+            if loading_summary["failed"] > 0:
+                with st.expander(f"⚠️ Loading Issues ({loading_summary['failed']}/{loading_summary['total_stocks']} stocks failed)", expanded=False):
+                    st.warning(f"**{loading_summary['successful']} stocks loaded successfully, {loading_summary['failed']} failed**")
+
+                    # Group errors by type
+                    error_groups = {}
+                    for ticker, error in loading_summary["error_details"].items():
+                        if error not in error_groups:
+                            error_groups[error] = []
+                        error_groups[error].append(ticker)
+
+                    for error_type, tickers in error_groups.items():
+                        st.write(f"**{error_type}**: {', '.join(tickers)}")
+
+                    st.info("💡 **Troubleshooting tips:**")
+                    st.write("- 🚫 **Rate limited**: Wait a few minutes and refresh")
+                    st.write("- ⏱️ **Timeout**: Check your internet connection")
+                    st.write("- 🌐 **Network error**: Verify connectivity and try again")
+                    st.write("- ⚠️ **No data**: Verify ticker symbols are correct")
+                    st.write("- ❌ **Other errors**: Check ticker format (Brazilian stocks should not include .SA)")
+            else:
+                st.success(f"✅ All {loading_summary['total_stocks']} stocks loaded successfully!")
+
             # Calculate portfolio metrics
             metrics = calculate_portfolio_metrics(df)
 
@@ -1289,46 +1559,98 @@ if selected_portfolio:
                 key="ai_analysis_type"
             )
 
-            if st.button("🧠 Run AI Analysis", key="run_ai_analysis"):
-                with st.spinner("AI is analyzing your portfolio..."):
+            # Only show AI analysis if we have portfolio data
+            if portfolio_stocks:
+                if st.button("🧠 Run AI Analysis", key="run_ai_analysis"):
+                    with st.spinner("AI is analyzing your portfolio..."):
+                        # Recreate portfolio_df for AI analysis (optimize API calls)
+                        portfolio_data = []
 
-                    if ai_analysis_type == "Portfolio Overview":
-                        if ollama_status['available'] and ollama_status['has_llama']:
-                            analysis = analyze_portfolio_with_ollama(portfolio_df, selected_portfolio)
-                            st.markdown("### 🎯 AI Portfolio Analysis")
-                            st.write(analysis)
-                        else:
-                            st.warning("Ollama with LLaMA model required for portfolio analysis")
+                        # Batch API calls to respect rate limits
+                        for ticker, stock_info in portfolio_stocks.items():
+                            # Use cached data if available to minimize API calls
+                            real_time_data = fetch_stock_data(ticker, market_type)
 
-                    elif ai_analysis_type == "Trading Signals":
-                        signals = generate_ai_trading_signals(portfolio_df)
-                        st.markdown("### 📊 AI Trading Signals")
-
-                        for ticker, signal in signals.items():
-                            if "STRONG BUY" in signal:
-                                st.success(f"**{ticker}**: {signal}")
-                            elif "BUY" in signal:
-                                st.info(f"**{ticker}**: {signal}")
-                            elif "HOLD" in signal:
-                                st.warning(f"**{ticker}**: {signal}")
+                            if real_time_data:
+                                current_price = real_time_data['current_price']
+                                day_change = real_time_data['change']
+                                day_change_percent = real_time_data['change_percent']
+                                currency = real_time_data['currency']
                             else:
-                                st.error(f"**{ticker}**: {signal}")
+                                current_price = stock_info['avg_price']
+                                day_change = 0
+                                day_change_percent = 0
+                                currency = 'BRL' if market_type == "Brazilian" else 'USD'
 
-                    elif ai_analysis_type == "News Sentiment":
-                        if gemini_available and portfolio_news:
-                            st.markdown("### 📰 AI News Sentiment Analysis")
+                            total_invested = stock_info['quantity'] * stock_info['avg_price']
+                            current_value = stock_info['quantity'] * current_price
+                            total_return = current_value - total_invested
+                            return_percent = (total_return / total_invested * 100) if total_invested > 0 else 0
 
-                            # Analyze news for each stock
-                            for ticker, news_articles in list(portfolio_news.items())[:2]:  # Limit to 2 stocks
-                                if news_articles:
-                                    with st.expander(f"📈 {ticker} News Analysis"):
-                                        sentiment_analysis = analyze_news_sentiment_with_gemini(news_articles, ticker)
-                                        st.write(sentiment_analysis)
-                        else:
-                            if not gemini_available:
-                                st.warning("Google Gemini API key required for news sentiment analysis")
-                            if not portfolio_news:
-                                st.warning("No news data available for sentiment analysis")
+                            portfolio_data.append({
+                                'Ticker': ticker,
+                                'Quantity': stock_info['quantity'],
+                                'Avg Price': stock_info['avg_price'],
+                                'Current Price': current_price,
+                                'Total Invested': total_invested,
+                                'Current Value': current_value,
+                                'Total Return': total_return,
+                                'Return %': return_percent,
+                                'Change %': day_change_percent,
+                                'Currency': currency
+                            })
+
+                        ai_portfolio_df = pd.DataFrame(portfolio_data)
+
+                        if ai_analysis_type == "Portfolio Overview":
+                            if ollama_status['available'] and ollama_status['has_llama']:
+                                analysis = analyze_portfolio_with_ollama(ai_portfolio_df, selected_portfolio)
+                                st.markdown("### 🎯 AI Portfolio Analysis")
+                                st.write(analysis)
+                            else:
+                                st.warning("Ollama with LLaMA model required for portfolio analysis")
+
+                        elif ai_analysis_type == "Trading Signals":
+                            signals = generate_ai_trading_signals(ai_portfolio_df)
+                            st.markdown("### 📊 AI Trading Signals")
+
+                            for ticker, signal in signals.items():
+                                if "STRONG BUY" in signal:
+                                    st.success(f"**{ticker}**: {signal}")
+                                elif "BUY" in signal:
+                                    st.info(f"**{ticker}**: {signal}")
+                                elif "HOLD" in signal:
+                                    st.warning(f"**{ticker}**: {signal}")
+                                else:
+                                    st.error(f"**{ticker}**: {signal}")
+
+                        elif ai_analysis_type == "News Sentiment":
+                            if gemini_available and portfolio_news:
+                                st.markdown("### 📰 AI News Sentiment Analysis")
+
+                                # Optimize for Gemini free tier (15 requests/minute)
+                                # Analyze only 1 stock at a time to respect rate limits
+                                analyzed_count = 0
+                                max_analyses = 1  # Limit to 1 analysis per request to stay within free tier
+
+                                for ticker, news_articles in portfolio_news.items():
+                                    if analyzed_count >= max_analyses:
+                                        st.info(f"📊 Analysis limited to {max_analyses} stock(s) to respect API rate limits. "
+                                               f"Run again to analyze other stocks.")
+                                        break
+
+                                    if news_articles:
+                                        with st.expander(f"📈 {ticker} News Analysis"):
+                                            sentiment_analysis = analyze_news_sentiment_with_gemini(news_articles, ticker)
+                                            st.write(sentiment_analysis)
+                                            analyzed_count += 1
+                            else:
+                                if not gemini_available:
+                                    st.warning("Google Gemini API key required for news sentiment analysis")
+                                if not portfolio_news:
+                                    st.warning("No news data available for sentiment analysis")
+            else:
+                st.info("Add stocks to your portfolio to enable AI analysis")
 
             # AI Setup Instructions
             with st.expander("🛠️ AI Setup Instructions"):
@@ -1441,7 +1763,52 @@ if selected_portfolio:
                             st.warning(f"Could not load technical analysis for {selected_stock}")
 
         else:
-            st.warning("Unable to fetch data for the stocks in your portfolio. Please check the ticker symbols or try again later.")
+            st.error("⚠️ **Unable to fetch data for your portfolio stocks**")
+            st.markdown("""
+            **Possible causes:**
+            - API rate limits reached (try again in a few minutes)
+            - Invalid ticker symbols
+            - Network connectivity issues
+            - All data sources temporarily unavailable
+
+            **What you can do:**
+            - ✅ Check your ticker symbols are correct
+            - ✅ Wait a few minutes and refresh the page
+            - ✅ Verify your internet connection
+            - ✅ Try adding API keys in your `.env` file for better reliability
+            """)
+
+            # Show which stocks failed to load
+            failed_stocks = []
+            for ticker in portfolio_stocks.keys():
+                test_data = fetch_stock_data(ticker, market_type)
+                if not test_data:
+                    failed_stocks.append(ticker)
+
+            if failed_stocks:
+                st.warning(f"**Stocks with data issues:** {', '.join(failed_stocks)}")
+
+            # Show fallback data using average prices
+            st.info("**Showing portfolio with average prices as fallback:**")
+            fallback_data = []
+            for ticker, stock_info in portfolio_stocks.items():
+                quantity = stock_info['quantity']
+                avg_price = stock_info['avg_price']
+                total_invested = quantity * avg_price
+                currency = 'BRL' if market_type == "Brazilian" else 'USD'
+
+                fallback_data.append({
+                    "Ticker": ticker,
+                    "Quantity": quantity,
+                    "Avg Price": avg_price,
+                    "Total Invested": total_invested,
+                    "Currency": currency,
+                    "Status": "⚠️ Using avg price"
+                })
+
+            if fallback_data:
+                fallback_df = pd.DataFrame(fallback_data)
+                st.dataframe(fallback_df, use_container_width=True, hide_index=True)
 
     else:
         st.info(f"No stocks in {selected_portfolio} portfolio. Use the sidebar to add stocks.")
@@ -1452,10 +1819,43 @@ else:
 # Settings
 st.sidebar.markdown("---")
 st.sidebar.subheader("Settings")
-auto_refresh = st.sidebar.checkbox("Auto-refresh data (30s)", value=True)
 
-if auto_refresh:
-    time.sleep(30)
+# Configurable refresh settings
+refresh_enabled = st.sidebar.checkbox("Enable auto-refresh", value=False)
+
+if refresh_enabled:
+    refresh_options = {
+        "5 minutes": 300,
+        "10 minutes": 600,
+        "15 minutes": 900,
+        "30 minutes": 1800,
+        "1 hour": 3600
+    }
+
+    selected_refresh = st.sidebar.selectbox(
+        "Refresh interval",
+        options=list(refresh_options.keys()),
+        index=2,  # Default to 15 minutes
+        help="Choose how often to refresh stock data. Longer intervals preserve API limits."
+    )
+
+    refresh_seconds = refresh_options[selected_refresh]
+
+    st.sidebar.info(f"📊 Next refresh in {selected_refresh}")
+
+    # Show API usage warning for short intervals
+    if refresh_seconds < 900:  # Less than 15 minutes
+        st.sidebar.warning("⚠️ Short refresh intervals may exhaust API limits quickly")
+
+    time.sleep(refresh_seconds)
+    st.rerun()
+else:
+    st.sidebar.info("💡 Enable auto-refresh to automatically update stock prices")
+
+# Manual refresh button
+st.sidebar.markdown("---")
+if st.sidebar.button("🔄 Refresh Now", help="Manually refresh stock data"):
+    st.cache_data.clear()  # Clear cache to force fresh data
     st.rerun()
 
 # Footer
