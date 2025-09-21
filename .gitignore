@@ -173,4 +173,5 @@ Desktop.ini
 
 # Project-specific files
 portfolios.json
+portfolios_backup.json
 *.log
