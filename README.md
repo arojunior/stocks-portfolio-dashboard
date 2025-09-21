@@ -5,6 +5,7 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
 ## 🚧 Current Status (September 2025)
 
 **✅ Fully Functional:**
+
 - Multi-portfolio management (Brazilian & US stocks)
 - Real-time stock price fetching with multiple API sources
 - Portfolio analytics and performance metrics
@@ -13,19 +14,26 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
 - Technical analysis charts
 - Configurable refresh intervals
 - Progressive loading for large portfolios
+- **NEW**: Sector analysis and dividend yield tracking
+- **NEW**: Real-time sector and dividend data from Yahoo Finance
 
 **🔄 In Development:**
-- Sector analysis and diversification metrics
-- Dividend yield tracking and passive income projections
-- Enhanced error handling and user feedback
 
-**🐛 Known Issues:**
-- Streamlit cache occasionally prevents UI updates (manual refresh needed)
-- Some deprecation warnings in console (non-critical)
+- Enhanced sector diversification metrics
+- Advanced dividend income projections
+- Portfolio comparison features
+
+**✅ Recently Fixed:**
+
+- Sector and dividend data now displays correctly in portfolio table
+- Fixed Streamlit deprecation warnings
+- Improved data fetching with real sector and dividend information
+- Cache clearing utility for better development experience
 
 ## Features
 
 ### 🚀 Core Features
+
 - **Multi-Portfolio Support**: Manage separate portfolios for different markets (Brazilian, US, or custom portfolios)
 - **Real-Time Data**: Automatic fetching of current stock prices, daily changes, and market data
 - **Portfolio Analytics**: Comprehensive metrics including total returns, best/worst performers, and portfolio composition
@@ -33,6 +41,7 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
 - **Persistent Storage**: Your portfolio data is saved locally in JSON format
 
 ### 🤖 AI-Powered Features (DeepCharts Inspired)
+
 - **Local AI Analysis**: Ollama integration with LLaMA 3.2 for completely free portfolio insights
 - **Professional Portfolio Analysis**: AI-powered performance assessment, risk analysis, and recommendations
 - **Smart Trading Signals**: AI-generated BUY/SELL/HOLD recommendations based on price movements
@@ -43,31 +52,36 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
 ### 📊 Dashboard Components
 
 #### Portfolio Overview
+
 - Total invested amount
 - Current portfolio value
 - Total return (absolute and percentage)
 - Number of profitable vs total stocks
 
 #### Visual Analytics
+
 - **Portfolio Composition**: Pie chart showing weight of each stock by current value
 - **Performance Overview**: Horizontal bar chart showing gain/loss percentage for each stock
 - **Detailed Table**: Comprehensive view with all stock data, formatted with conditional coloring
-- **Sector Analysis**: Portfolio diversification by industry sectors (🚧 *In Development*)
-- **Dividend Analysis**: Dividend yields and passive income projections (🚧 *In Development*)
+- **Sector Analysis**: Real-time sector information for portfolio diversification tracking
+- **Dividend Analysis**: Dividend yields and annual dividend amounts from Yahoo Finance
 
 #### Stock Management
+
 - Add new stocks with ticker, quantity, and average price
 - Update existing stock positions
 - Remove stocks from portfolio
 - Support for both US stocks (e.g., AAPL) and Brazilian stocks (e.g., PETR4)
 
 #### 🤖 AI-Powered Analysis
+
 - **Portfolio Overview**: Comprehensive AI analysis of performance, risk, and diversification
 - **Trading Signals**: Smart BUY/SELL/HOLD recommendations with reasoning
 - **News Sentiment**: AI analysis of news impact on your specific stocks
 - **Technical Charts**: Advanced candlestick charts with SMA, EMA, Bollinger Bands, RSI, MACD, VWAP
 
 #### 📰 News Feed
+
 - **Real-Time News**: Latest news for stocks in your portfolio
 - **Multiple Sources**: NewsAPI, Alpha Vantage, web scraping fallbacks
 - **Sentiment Analysis**: AI-powered sentiment scoring for each news article
@@ -75,6 +89,7 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
 ## Installation
 
 ### Prerequisites
+
 - Python 3.8 or higher
 - Git
 - **For AI Features**:
@@ -82,6 +97,7 @@ A comprehensive multi-portfolio management dashboard that replaces your Google S
   - Google Gemini API key (for news sentiment analysis)
 
 ### Setup with Virtual Environment (Recommended)
+
 **Always use a virtual environment for Python projects!**
 
 ```bash
@@ -125,6 +141,7 @@ ollama pull llama3.2
 ## Usage
 
 ### Running the Dashboard
+
 ```bash
 # Make sure virtual environment is activated first!
 source venv/bin/activate  # macOS/Linux
@@ -136,6 +153,7 @@ streamlit run portfolio_dashboard.py
 ```
 
 ### Getting Started
+
 1. **Create a Portfolio**: Use the sidebar to create a new portfolio (e.g., "Brazilian", "US", "Tech Stocks")
 2. **Add Stocks**: Select your portfolio and use the "Add/Update Stock" section to add your holdings
    - For US stocks: Use ticker symbols like `AAPL`, `GOOGL`, `MSFT`
@@ -148,23 +166,27 @@ streamlit run portfolio_dashboard.py
 5. **Check News Feed**: View the latest news for your portfolio stocks with AI sentiment analysis
 
 ### Stock Ticker Format
+
 - **US Stocks**: Use the standard ticker symbol (e.g., `AAPL` for Apple)
 - **Brazilian Stocks**: Use the ticker without the `.SA` suffix (e.g., `PETR4` for Petrobras) - the system will automatically add the `.SA` suffix when fetching data from Brazilian portfolios
 
 ## Data Sources
 
 ### Stock Data
+
 - **Primary**: Yahoo Finance (via `yfinance` library)
 - **Fallback APIs**: Alpha Vantage, Twelve Data (with API keys)
 - **Real-Time Updates**: Prices are fetched in real-time when the dashboard loads
 - **Market Support**: US stocks and Brazilian stocks (B3 exchange)
 
 ### News Data
+
 - **Primary**: NewsAPI (100 requests/day free tier)
 - **Fallback**: Alpha Vantage News API, web scraping
 - **AI Analysis**: Google Gemini for sentiment analysis
 
 ### AI Services
+
 - **Local AI**: Ollama with LLaMA 3.2 (completely free, no limits)
 - **Cloud AI**: Google Gemini (free tier: 15 requests/minute)
 - **Technical Analysis**: TA-Lib for advanced indicators
@@ -185,12 +207,13 @@ DEVELOPMENT_HISTORY.md         # Development timeline and changes
 ## Portfolio Data Format
 
 Your portfolio data is stored in `portfolios.json` with the following structure:
+
 ```json
 {
   "Brazilian": {
     "PETR4": {
       "quantity": 100,
-      "avg_price": 25.50,
+      "avg_price": 25.5,
       "date_added": "2024-01-15T10:30:00"
     }
   },
@@ -206,15 +229,15 @@ Your portfolio data is stored in `portfolios.json` with the following structure:
 
 ## Features Comparison: Spreadsheet vs Dashboard
 
-| Feature | Google Spreadsheet | Portfolio Dashboard |
-|---------|-------------------|-------------------|
-| Real-time prices | Manual refresh needed | Automatic fetching |
-| Portfolio analytics | Manual calculations | Automatic calculations |
-| Visual charts | Limited/manual | Interactive charts |
-| Multiple portfolios | Multiple sheets | Built-in support |
-| Data persistence | Cloud-based | Local JSON file |
-| Performance tracking | Manual tracking | Automatic metrics |
-| Mobile-friendly | Limited | Responsive design |
+| Feature              | Google Spreadsheet    | Portfolio Dashboard    |
+| -------------------- | --------------------- | ---------------------- |
+| Real-time prices     | Manual refresh needed | Automatic fetching     |
+| Portfolio analytics  | Manual calculations   | Automatic calculations |
+| Visual charts        | Limited/manual        | Interactive charts     |
+| Multiple portfolios  | Multiple sheets       | Built-in support       |
+| Data persistence     | Cloud-based           | Local JSON file        |
+| Performance tracking | Manual tracking       | Automatic metrics      |
+| Mobile-friendly      | Limited               | Responsive design      |
 
 ## ✅ Recently Added Features
 
@@ -223,6 +246,10 @@ Your portfolio data is stored in `portfolios.json` with the following structure:
 - ✅ **Technical Charts**: Advanced candlestick charts with indicators
 - ✅ **Smart Trading Signals**: AI-generated recommendations
 - ✅ **Multi-Source Data**: Fallback APIs for reliable data fetching
+- ✅ **Sector Analysis**: Real-time sector information for all stocks
+- ✅ **Dividend Tracking**: Dividend yields and annual dividend amounts
+- ✅ **Enhanced Data Fetching**: Improved Yahoo Finance integration for comprehensive stock data
+- ✅ **Cache Management**: Utility script for clearing Streamlit cache during development
 
 ## 🚀 Planned Features (Future Updates)
 
@@ -237,17 +264,25 @@ Your portfolio data is stored in `portfolios.json` with the following structure:
 ### Common Issues
 
 1. **Stock data not loading**:
+
    - Check your internet connection
    - Verify the ticker symbol is correct
    - For Brazilian stocks, ensure you're using the correct B3 ticker format
 
 2. **Portfolio not saving**:
+
    - Make sure you have write permissions in the application directory
    - Check if `portfolios.json` file can be created/modified
 
 3. **Performance issues**:
+
    - Disable auto-refresh if you have many stocks
    - Consider splitting large portfolios into smaller ones
+
+4. **Code changes not showing**:
+   - Run the cache clearing utility: `python3 clear_cache.py`
+   - Restart the Streamlit app: `streamlit run portfolio_dashboard.py`
+   - Clear browser cache if issues persist
 
 ### Error Messages
 
@@ -261,4 +296,3 @@ For issues or feature requests related to this dashboard, please check the exist
 ## License
 
 This project is based on the DeepCharts YouTube channel educational content and is intended for personal portfolio management use.
-

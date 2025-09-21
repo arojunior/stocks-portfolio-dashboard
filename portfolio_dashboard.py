@@ -86,7 +86,46 @@ class PortfolioManager:
                 self.portfolios = json.load(f)
         else:
             # Initialize with default portfolios
-            self.portfolios = {"Brazilian": {}, "US": {}}
+            self.portfolios = {"Brazilian_B3": {}, "US_NYSE": {}}
+
+    def get_market_from_portfolio_name(self, portfolio_name: str) -> str:
+        """Extract market type from portfolio name"""
+        name_lower = portfolio_name.lower()
+        if ("brazilian" in name_lower or "b3" in name_lower or
+            "acoes" in name_lower or "brasil" in name_lower or
+            "brazil" in name_lower):
+            return "Brazilian"
+        elif ("us" in name_lower or "nyse" in name_lower or
+              "nasdaq" in name_lower or "america" in name_lower):
+            return "US"
+        else:
+            # Fallback to old logic
+            return "Brazilian" if "brazil" in name_lower else "US"
+
+    def migrate_old_portfolio_structure(self):
+        """Migrate old portfolio structure to new multi-portfolio structure"""
+        if "Brazilian" in self.portfolios and "US" in self.portfolios:
+            # Check if we need to migrate
+            if not any("Brazilian_" in key for key in self.portfolios.keys()):
+                # Migrate old structure
+                new_portfolios = {}
+
+                # Migrate Brazilian portfolio
+                if "Brazilian" in self.portfolios and self.portfolios["Brazilian"]:
+                    new_portfolios["Brazilian_B3"] = self.portfolios["Brazilian"]
+
+                # Migrate US portfolio
+                if "US" in self.portfolios and self.portfolios["US"]:
+                    new_portfolios["US_NYSE"] = self.portfolios["US"]
+
+                # Keep any other portfolios
+                for key, value in self.portfolios.items():
+                    if key not in ["Brazilian", "US"]:
+                        new_portfolios[key] = value
+
+                self.portfolios = new_portfolios
+                self.save_portfolios()
+                st.success("✅ Migrated portfolio structure to support multiple portfolios per market!")
 
     def save_portfolios(self):
         """Save portfolios to JSON file"""
@@ -134,6 +173,153 @@ class PortfolioManager:
 ##########################################################################################
 
 
+def get_sector_info(ticker: str, market: str, info: Dict) -> str:
+    """Get sector information for a stock, with Brazilian stock mapping"""
+    # First try to get from Yahoo Finance info
+    sector = info.get("sector", "")
+    if sector and sector != "Unknown":
+        return sector
+
+    # For Brazilian stocks, use our mapping
+    if market == "Brazilian":
+        ticker_clean = ticker.replace(".SA", "").upper()
+        # Debug output (commented out to avoid console spam)
+        # print(f"🔍 Debug get_sector_info: ticker={ticker}, market={market}, ticker_clean={ticker_clean}")
+        brazilian_sectors = {
+            # Financial Services
+            "ITUB4": "Financial Services", "ITUB3": "Financial Services",
+            "BBDC4": "Financial Services", "BBDC3": "Financial Services",
+            "SANB11": "Financial Services", "SANB3": "Financial Services",
+            "BBAS3": "Financial Services", "ABCB4": "Financial Services",
+            "ITSA4": "Financial Services", "ITSA3": "Financial Services",
+            "FESA4": "Financial Services", "FESA3": "Financial Services",
+
+            # Energy
+            "PETR4": "Energy", "PETR3": "Energy", "PRIO3": "Energy",
+            "3R11": "Energy", "RRRP3": "Energy", "VBBR3": "Energy",
+
+            # Mining/Materials
+            "VALE3": "Materials", "CSNA3": "Materials", "USIM5": "Materials",
+            "GGBR4": "Materials", "GGBR3": "Materials",
+
+            # Utilities
+            "EGIE3": "Utilities", "CPLE6": "Utilities", "CPLE3": "Utilities",
+            "ELET3": "Utilities", "ELET6": "Utilities", "ENBR3": "Utilities",
+            "UNIP6": "Utilities", "UNIP3": "Utilities",
+
+            # Real Estate
+            "VAMO3": "Real Estate", "BRML3": "Real Estate", "CYRE3": "Real Estate",
+            "JHSF3": "Real Estate", "MULT3": "Real Estate", "BRPR3": "Real Estate",
+
+            # Consumer Goods
+            "ABEV3": "Consumer Staples", "JBSS3": "Consumer Staples",
+            "MRFG3": "Consumer Staples", "RADL3": "Consumer Staples",
+
+            # Technology
+            "TOTS3": "Technology", "LWSA3": "Technology", "POSI3": "Technology",
+
+            # Telecommunications
+            "VIVT3": "Telecommunications", "VIVT4": "Telecommunications",
+            "TIMS3": "Telecommunications", "OIBR3": "Telecommunications",
+
+            # Healthcare
+            "PSSA3": "Healthcare", "RDOR3": "Healthcare", "QUAL3": "Healthcare",
+
+            # Industrial
+            "WEGE3": "Industrials", "EMBR3": "Industrials", "RENT3": "Industrials",
+
+            # Retail
+            "MGLU3": "Consumer Discretionary", "LREN3": "Consumer Discretionary",
+            "VVAR3": "Consumer Discretionary", "AMER3": "Consumer Discretionary",
+
+            # Construction
+            "SAPR4": "Industrials", "SAPR3": "Industrials", "EZTC3": "Industrials",
+            "JHSF3": "Real Estate", "CYRE3": "Real Estate",
+
+            # Additional stocks from your portfolio
+            "VBBR3": "Materials",  # Vale Brasil
+            "CSAN3": "Materials",  # Companhia Siderúrgica Nacional
+            "ISAE4": "Financial Services",  # Isae
+            "GOAU4": "Materials",  # Gerdau
+            "CPLE6": "Utilities", "CPLE3": "Utilities",  # Copel
+            "UNIP6": "Utilities", "UNIP3": "Utilities",  # Unipar
+            "FESA4": "Financial Services", "FESA3": "Financial Services",  # Fesa
+            "ITSA4": "Financial Services", "ITSA3": "Financial Services",  # Itaúsa
+        }
+        return brazilian_sectors.get(ticker_clean, "Unknown")
+
+    return "Unknown"
+
+
+def get_dividend_yield(ticker: str, market: str, info: Dict) -> float:
+    """Get dividend yield for a stock - prioritize static data due to API rate limiting"""
+    ticker_clean = ticker.replace(".SA", "").upper()
+
+    # Static dividend yields for Brazilian stocks (more reliable than rate-limited APIs)
+    if market == "Brazilian":
+        known_dividend_yields = {
+            "ITUB4": 8.5, "ITUB3": 8.5,  # Itaú
+            "BBDC4": 7.2, "BBDC3": 7.2,  # Bradesco
+            "VALE3": 6.8,  # Vale
+            "PETR4": 5.5, "PETR3": 5.5,  # Petrobras
+            "ABEV3": 4.2,  # Ambev
+            "WEGE3": 3.8,  # WEG
+            "MGLU3": 2.1,  # Magazine Luiza
+            "VIVT3": 3.5,  # Vivo
+            "EGIE3": 4.8,  # Engie Brasil
+            "CPLE6": 5.2, "CPLE3": 5.2,  # Copel
+            "UNIP6": 4.1, "UNIP3": 4.1,  # Unipar
+            "PSSA3": 2.8,  # Porto Seguro
+            "SAPR4": 3.2, "SAPR3": 3.2,  # Sanepar
+            "VBBR3": 6.5,  # Vale Brasil
+            "CSAN3": 4.5,  # Companhia Siderúrgica Nacional
+            "ISAE4": 5.8,  # Isae
+            "GOAU4": 3.9,  # Gerdau
+            "FESA4": 6.2, "FESA3": 6.2,  # Fesa
+            "ITSA4": 7.8, "ITSA3": 7.8,  # Itaúsa
+            # Add stocks that show 0 dividends (these might actually have no dividends)
+            "VAMO3": 0.0,  # Real estate investment trust - might not pay dividends
+            "SANB11": 0.0,  # Santander - might not pay dividends
+            "PRIO3": 0.0,  # PetroRio - might not pay dividends
+        }
+        return known_dividend_yields.get(ticker_clean, 0.0)
+
+    # For US stocks, try to get from API data first, then fallback to static
+    if market == "US":
+        dividend_fields = [
+            "dividendYield",
+            "trailingAnnualDividendYield",
+            "forwardDividendYield",
+            "dividendRate",
+            "yield"
+        ]
+
+        for field in dividend_fields:
+            value = info.get(field, 0)
+            if value and value > 0:
+                # Convert to percentage if it's a decimal (0.05 -> 5.0)
+                return value * 100 if value < 1 else value
+
+    return 0.0
+
+
+def get_annual_dividend(ticker: str, market: str, info: Dict, current_price: float = 0, quantity: int = 0) -> float:
+    """Calculate total annual dividend for the entire position"""
+    # Get dividend yield first
+    dividend_yield = get_dividend_yield(ticker, market, info)
+
+    # If no dividend yield, current price, or quantity, return 0
+    if dividend_yield == 0 or current_price == 0 or quantity == 0:
+        return 0.0
+
+    # Calculate current value (total value of the position)
+    current_value = current_price * quantity
+
+    # Calculate total annual dividend: (dividend_yield / 100) * current_value
+    annual_dividend = (dividend_yield / 100) * current_value
+    return round(annual_dividend, 2)
+
+
 def fetch_enhanced_stock_data(
     ticker: str, market: str = "US", period: str = "1mo"
 ) -> Optional[Dict]:
@@ -149,6 +335,12 @@ def fetch_enhanced_stock_data(
         with SuppressYFinanceOutput():
             stock = yf.Ticker(ticker_symbol)
             hist = stock.history(period=period, interval="1d")
+
+            # Get additional stock info for sector and dividend data
+            try:
+                info = stock.info
+            except:
+                info = {}
 
         if hist.empty:
             # If no historical data, return None silently (don't log error)
@@ -195,10 +387,10 @@ def fetch_enhanced_stock_data(
             hist["High"], hist["Low"], hist["Close"], hist["Volume"]
         )
 
-                return {
-                    "current_price": current_price,
-                    "previous_close": prev_close,
-                    "change": current_price - prev_close,
+        return {
+            "current_price": current_price,
+            "previous_close": prev_close,
+            "change": current_price - prev_close,
             "change_percent": (
                 ((current_price - prev_close) / prev_close) * 100
                 if prev_close != 0
@@ -259,12 +451,16 @@ def fetch_enhanced_stock_data(
                     else None
                 ),
             },
+            # Add sector and dividend information with Brazilian stock mapping
+            "sector": get_sector_info(ticker, market, info),
+            "dividend_yield": get_dividend_yield(ticker, market, info),
                 }
     except Exception as e:
         # Silently handle yfinance errors - they're common for delisted/problematic stocks
         # Only log if it's not a common yfinance JSON parsing error
         if "Expecting value: line 1 column 1" not in str(e):
-            st.warning(f"Could not fetch enhanced data for {ticker}: {str(e)}")
+            st.warning(f"⚠️ Could not fetch enhanced data for {ticker}")
+            st.info(f"💡 This might be due to: invalid ticker symbol, delisted stock, or temporary API issues. Try checking the ticker format or adding the stock again later.")
 
     return None
 
@@ -281,6 +477,9 @@ def fetch_from_yahoo_finance(ticker: str, market: str = "US") -> Optional[Dict]:
             "change_percent": enhanced_data["change_percent"],
             "volume": enhanced_data["volume"],
             "currency": enhanced_data["currency"],
+            "sector": enhanced_data.get("sector", "Unknown"),
+            "dividend_yield": enhanced_data.get("dividend_yield", 0),
+            "annual_dividend": enhanced_data.get("annual_dividend", 0),
         }
     return None
 
@@ -323,6 +522,9 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
             ),
             "volume": int(data.get("volume", 0)) if data.get("volume") else 0,
             "currency": "USD" if market == "US" else "BRL",
+            # Add sector and dividend data using live API data
+            "sector": get_sector_info(ticker, market, data),
+            "dividend_yield": get_dividend_yield(ticker, market, data),
         }
 
         # Fallback to simple price endpoint
@@ -342,7 +544,8 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
             }
 
     except Exception as e:
-        st.warning(f"Twelve Data API error for {ticker}: {str(e)}")
+        st.warning(f"⚠️ Twelve Data API error for {ticker}")
+        st.info(f"💡 This might be due to: API rate limit exceeded, invalid API key, or temporary service issues. The system will try other data sources.")
 
     return None
 
@@ -390,6 +593,9 @@ def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
                         ),
                         "volume": int(stock_data.get("regularMarketVolume", 0)),
                         "currency": "BRL",
+                        # Add sector and dividend data using live API data
+                        "sector": get_sector_info(ticker, market, stock_data),
+                        "dividend_yield": get_dividend_yield(ticker, market, stock_data),
                     }
 
     except Exception as e:
@@ -435,6 +641,9 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
             ),
             "volume": int(quote.get("06. volume", 0)) if quote.get("06. volume") else 0,
             "currency": "USD" if market == "US" else "BRL",
+            # Add sector and dividend data using live API data
+            "sector": get_sector_info(ticker, market, quote),
+            "dividend_yield": get_dividend_yield(ticker, market, quote),
         }
 
     except Exception as e:
@@ -531,7 +740,8 @@ def fetch_stock_news_alpha_vantage(ticker: str, limit: int = 10) -> List[Dict]:
         return news_articles
 
     except Exception as e:
-        st.warning(f"Alpha Vantage News error for {ticker}: {str(e)}")
+        st.warning(f"⚠️ Alpha Vantage News error for {ticker}")
+        st.info(f"💡 This might be due to: API rate limit exceeded (25 requests/day free tier), invalid API key, or temporary service issues. The system will try other news sources.")
         return []
 
 
@@ -740,11 +950,11 @@ def check_ollama_availability() -> Dict[str, bool]:
         if response.status_code == 200:
             models = response.json().get("models", [])
             model_names = [model.get("name", "") for model in models]
-    return {
-            "available": True,
-            "models": model_names,
-            "has_llama": any("llama" in name.lower() for name in model_names),
-        }
+            return {
+                "available": True,
+                "models": model_names,
+                "has_llama": any("llama" in name.lower() for name in model_names),
+            }
     except:
         pass
 
@@ -1208,18 +1418,17 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, market: str) -> pd.DataFr
             (gain_loss / total_invested) * 100 if total_invested != 0 else 0
         )
 
-        # Add basic sector info for your Brazilian stocks
-        if market == "Brazilian":
-            ticker_clean = ticker.replace(".SA", "").upper()
-            sectors = {
-                "VAMO3": "Real Estate",
-                "SANB11": "Financial Services",
-                "EGIE3": "Utilities",
-                "PRIO3": "Energy",
-            }
-            sector = sectors.get(ticker_clean, "Unknown")
+        # Get sector and dividend data from real-time data
+        if real_time_data:
+            sector = real_time_data.get("sector", "Unknown")
+            dividend_yield = real_time_data.get("dividend_yield", 0)
         else:
-            sector = "Unknown"
+            # Fallback to comprehensive sector and dividend info
+            sector = get_sector_info(ticker, market, {})
+            dividend_yield = get_dividend_yield(ticker, market, {})
+
+        # Always calculate total annual dividend using quantity (regardless of data source)
+        annual_dividend = get_annual_dividend(ticker, market, {}, current_price, quantity)
 
         portfolio_data.append(
             {
@@ -1235,12 +1444,107 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, market: str) -> pd.DataFr
                 "Day Change %": day_change_percent,
                 "Currency": currency,
                 "Sector": sector,
-                "Dividend Yield %": 0,
-                "Annual Dividend": 0,
+                "Dividend Yield %": round(dividend_yield, 2),
+                "Annual Dividend": round(annual_dividend, 2),
             }
         )
 
     return pd.DataFrame(portfolio_data)
+
+
+def analyze_sector_distribution(df: pd.DataFrame) -> Optional[pd.DataFrame]:
+    """Analyze sector distribution of the portfolio"""
+    if df.empty or 'Sector' not in df.columns:
+        return None
+
+    # Filter out stocks with unknown sectors
+    sector_df = df[df['Sector'] != 'Unknown'].copy()
+
+    if sector_df.empty:
+        return None
+
+    # Create sector analysis dataframe
+    sector_analysis = sector_df[['Ticker', 'Sector', 'Current Value', 'Change %']].copy()
+    sector_analysis = sector_analysis.rename(columns={'Current Value': 'Value'})
+
+    return sector_analysis
+
+
+def analyze_dividend_distribution(df: pd.DataFrame) -> Optional[pd.DataFrame]:
+    """Analyze dividend distribution of the portfolio"""
+    if df.empty or 'Dividend Yield %' not in df.columns or 'Annual Dividend' not in df.columns:
+        return None
+
+    # Create dividend analysis dataframe
+    dividend_analysis = df[['Ticker', 'Dividend Yield %', 'Annual Dividend', 'Current Value']].copy()
+
+    return dividend_analysis
+
+
+def calculate_diversification_metrics(df: pd.DataFrame) -> Optional[Dict]:
+    """Calculate portfolio diversification metrics"""
+    if df.empty:
+        return None
+
+    # Basic metrics
+    stock_count = len(df)
+    total_value = df['Current Value'].sum()
+
+    # Sector diversification
+    sector_count = df['Sector'].nunique() if 'Sector' in df.columns else 0
+    unique_sectors = df['Sector'].unique() if 'Sector' in df.columns else []
+
+    # Position concentration
+    df_sorted = df.sort_values('Current Value', ascending=False)
+    largest_position_pct = (df_sorted['Current Value'].iloc[0] / total_value * 100) if stock_count > 0 else 0
+    top_5_pct = (df_sorted['Current Value'].head(5).sum() / total_value * 100) if stock_count >= 5 else 100
+
+    # Calculate diversification score (0-10)
+    diversification_score = 0
+
+    # Stock count score (0-3 points)
+    if stock_count >= 20:
+        diversification_score += 3
+    elif stock_count >= 10:
+        diversification_score += 2
+    elif stock_count >= 5:
+        diversification_score += 1
+
+    # Sector diversification score (0-3 points)
+    if sector_count >= 8:
+        diversification_score += 3
+    elif sector_count >= 5:
+        diversification_score += 2
+    elif sector_count >= 3:
+        diversification_score += 1
+
+    # Concentration score (0-4 points)
+    if largest_position_pct <= 5:
+        diversification_score += 4
+    elif largest_position_pct <= 10:
+        diversification_score += 3
+    elif largest_position_pct <= 15:
+        diversification_score += 2
+    elif largest_position_pct <= 20:
+        diversification_score += 1
+
+    # Risk level assessment
+    if diversification_score >= 7:
+        risk_level = "Low"
+    elif diversification_score >= 5:
+        risk_level = "Medium"
+    else:
+        risk_level = "High"
+
+    return {
+        'stock_count': stock_count,
+        'sector_count': sector_count,
+        'largest_position_pct': largest_position_pct,
+        'top_5_pct': top_5_pct,
+        'diversification_score': diversification_score,
+        'risk_level': risk_level,
+        'unique_sectors': unique_sectors.tolist() if len(unique_sectors) > 0 else []
+    }
 
 
 def create_portfolio_dataframe_progressive(
@@ -1282,19 +1586,31 @@ def create_portfolio_dataframe_progressive(
             status = "✅"
         else:
             # If no real-time data available, use average price as placeholder
-                current_price = avg_price
+            current_price = avg_price
             day_change = 0
             day_change_percent = 0
             currency = "BRL" if market == "Brazilian" else "USD"
             status = "⚠️"
 
         # Calculate portfolio metrics
-            total_invested = quantity * avg_price
-            current_value = quantity * current_price
-            gain_loss = current_value - total_invested
+        total_invested = quantity * avg_price
+        current_value = quantity * current_price
+        gain_loss = current_value - total_invested
         gain_loss_percent = (
             (gain_loss / total_invested) * 100 if total_invested != 0 else 0
         )
+
+        # Get sector and dividend data from real-time data
+        if real_time_data:
+            sector = real_time_data.get("sector", "Unknown")
+            dividend_yield = real_time_data.get("dividend_yield", 0)
+        else:
+            # Fallback to comprehensive sector and dividend info
+            sector = get_sector_info(ticker, market, {})
+            dividend_yield = get_dividend_yield(ticker, market, {})
+
+        # Always calculate total annual dividend using quantity (regardless of data source)
+        annual_dividend = get_annual_dividend(ticker, market, {}, current_price, quantity)
 
         portfolio_data.append(
             {
@@ -1310,9 +1626,9 @@ def create_portfolio_dataframe_progressive(
                 "Day Change": day_change,
                 "Day Change %": day_change_percent,
                 "Currency": currency,
-                "Sector": "Unknown",
-                "Dividend Yield %": 0,
-                "Annual Dividend": 0,
+                "Sector": sector,
+                "Dividend Yield %": round(dividend_yield, 2),
+                "Annual Dividend": round(annual_dividend, 2),
             }
         )
 
@@ -1345,7 +1661,7 @@ def create_portfolio_dataframe_progressive(
                     ),
                     subset=["Gain/Loss", "Change %", "Day Change", "Day Change %"],
                 ),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -1417,6 +1733,10 @@ st.set_page_config(
 # Initialize portfolio manager
 if "portfolio_manager" not in st.session_state:
     st.session_state.portfolio_manager = PortfolioManager()
+    # Migrate old portfolio structure if needed
+    st.session_state.portfolio_manager.migrate_old_portfolio_structure()
+
+portfolio_manager = st.session_state.portfolio_manager
 
 # Main title
 st.title("📈 Stock Portfolio Management Dashboard")
@@ -1437,26 +1757,45 @@ selected_portfolio = st.sidebar.selectbox(
 
 # Add new portfolio
 st.sidebar.subheader("Create New Portfolio")
-new_portfolio_name = st.sidebar.text_input("Portfolio Name")
+
+# Portfolio creation with market selection
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    market_selection = st.selectbox("Market", ["Brazilian", "US"], key="market_select")
+with col2:
+    exchange_selection = st.selectbox(
+        "Exchange",
+        ["B3", "OTC"] if market_selection == "Brazilian" else ["NYSE", "NASDAQ"],
+        key="exchange_select"
+    )
+
+new_portfolio_name = st.sidebar.text_input("Portfolio Name (optional)")
 if st.sidebar.button("Create Portfolio"):
-    if new_portfolio_name and new_portfolio_name not in portfolio_names:
-        portfolio_manager.portfolios[new_portfolio_name] = {}
-        portfolio_manager.save_portfolios()
-        st.sidebar.success(f"Portfolio '{new_portfolio_name}' created!")
-        st.rerun()
-    elif new_portfolio_name in portfolio_names:
-        st.sidebar.error("Portfolio already exists!")
+    # Generate portfolio name if not provided
+    if not new_portfolio_name:
+        new_portfolio_name = f"{market_selection}_{exchange_selection}"
+
+    # Ensure unique name
+    counter = 1
+    original_name = new_portfolio_name
+    while new_portfolio_name in portfolio_names:
+        new_portfolio_name = f"{original_name}_{counter}"
+        counter += 1
+
+    portfolio_manager.portfolios[new_portfolio_name] = {}
+    portfolio_manager.save_portfolios()
+    st.sidebar.success(f"Portfolio '{new_portfolio_name}' created!")
+    st.rerun()
 
 # Stock management
 if selected_portfolio:
     st.sidebar.subheader(f"Manage {selected_portfolio} Portfolio")
 
-    # Determine market type
-    market_type = (
-        "Brazilian"
-        if "brazil" in selected_portfolio.lower() or selected_portfolio == "Brazilian"
-        else "US"
-    )
+    # Determine market type using the new method
+    market_type = portfolio_manager.get_market_from_portfolio_name(selected_portfolio)
+
+    # Debug output
+    st.sidebar.info(f"🔍 Debug: Portfolio='{selected_portfolio}', Market='{market_type}'")
 
     # Add stock form
     with st.sidebar.expander("Add/Update Stock"):
@@ -1470,7 +1809,7 @@ if selected_portfolio:
                 "Quantity", min_value=0.001, value=1.0, step=0.001, format="%.3f"
             )
         else:
-        quantity_input = st.number_input("Quantity", min_value=1, value=1)
+            quantity_input = st.number_input("Quantity", min_value=1, value=1)
         avg_price_input = st.number_input(
             "Average Price", min_value=0.01, value=1.0, step=0.01
         )
@@ -1503,13 +1842,8 @@ if selected_portfolio:
     portfolio_stocks = portfolio_manager.get_portfolio_stocks(selected_portfolio)
 
     if portfolio_stocks:
-        # Determine market for data fetching
-        market_type = (
-            "Brazilian"
-            if "brazil" in selected_portfolio.lower()
-            or selected_portfolio == "Brazilian"
-            else "US"
-        )
+        # Determine market for data fetching using the new method
+        market_type = portfolio_manager.get_market_from_portfolio_name(selected_portfolio)
 
         # Create portfolio dataframe
         with st.spinner("Fetching real-time stock data..."):
@@ -1744,6 +2078,152 @@ if selected_portfolio:
                     st.write(f"**{worst['Ticker']}**: {worst['Change %']:.2f}% loss")
                     st.write(f"Value: {currency} {worst['Current Value']:,.2f}")
 
+            # Sector Analysis Section
+            st.markdown("---")
+            st.subheader("🏢 Sector Analysis")
+
+            # Analyze sector distribution
+            sector_analysis = analyze_sector_distribution(df)
+
+            if sector_analysis is not None and not sector_analysis.empty:
+                col1, col2 = st.columns([2, 1])
+
+                with col1:
+                    # Sector distribution pie chart
+                    st.write("**Portfolio by Sector**")
+                    fig_sector = px.pie(
+                        sector_analysis,
+                        values='Value',
+                        names='Sector',
+                        title="Portfolio Distribution by Sector",
+                        color_discrete_sequence=px.colors.qualitative.Set3
+                    )
+                    fig_sector.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig_sector, use_container_width=True)
+
+                with col2:
+                    # Sector summary table
+                    st.write("**Sector Summary**")
+                    sector_summary = sector_analysis.groupby('Sector').agg({
+                        'Value': 'sum',
+                        'Ticker': 'count',
+                        'Change %': 'mean'
+                    }).round(2)
+                    sector_summary.columns = ['Total Value', 'Stocks', 'Avg Return %']
+                    sector_summary = sector_summary.sort_values('Total Value', ascending=False)
+
+                    # Format the summary for display
+                    for sector in sector_summary.index:
+                        with st.container():
+                            st.write(f"**{sector}**")
+                            st.write(f"Value: {currency} {sector_summary.loc[sector, 'Total Value']:,.2f}")
+                            st.write(f"Stocks: {sector_summary.loc[sector, 'Stocks']}")
+                            st.write(f"Avg Return: {sector_summary.loc[sector, 'Avg Return %']:.2f}%")
+                            st.markdown("---")
+            else:
+                st.info("Sector analysis not available. Ensure your stocks have sector data.")
+
+            # Dividend Analysis Section
+            st.markdown("---")
+            st.subheader("💰 Dividend Analysis")
+
+            # Note about dividend data source
+            st.info("📊 **Note:** Dividend data is sourced from static mappings due to API rate limiting. For live dividend data, consider using premium API services.")
+
+            # Analyze dividend distribution
+            dividend_analysis = analyze_dividend_distribution(df)
+
+            if dividend_analysis is not None and not dividend_analysis.empty:
+                col1, col2 = st.columns([2, 1])
+
+                with col1:
+                    # Dividend yield distribution
+                    st.write("**Dividend Yield Distribution**")
+                    dividend_stocks = dividend_analysis[dividend_analysis['Dividend Yield %'] > 0]
+
+                    if not dividend_stocks.empty:
+                        fig_dividend = px.bar(
+                            dividend_stocks.sort_values('Dividend Yield %', ascending=True),
+                            x='Dividend Yield %',
+                            y='Ticker',
+                            orientation='h',
+                            title="Dividend Yields by Stock",
+                            color='Dividend Yield %',
+                            color_continuous_scale='Greens'
+                        )
+                        fig_dividend.update_layout(height=400)
+                        st.plotly_chart(fig_dividend, use_container_width=True)
+                    else:
+                        st.info("No dividend-paying stocks found in your portfolio.")
+
+                with col2:
+                    # Dividend summary
+                    st.write("**Dividend Summary**")
+
+                    # Calculate total annual dividend income
+                    total_annual_dividend = dividend_analysis['Annual Dividend'].sum()
+                    avg_dividend_yield = dividend_analysis['Dividend Yield %'].mean()
+                    dividend_stocks_count = len(dividend_analysis[dividend_analysis['Dividend Yield %'] > 0])
+
+                    st.metric("Total Annual Dividend", f"{currency} {total_annual_dividend:,.2f}")
+                    st.metric("Average Dividend Yield", f"{avg_dividend_yield:.2f}%")
+                    st.metric("Dividend-Paying Stocks", f"{dividend_stocks_count}")
+
+                    # Top dividend payers
+                    if dividend_stocks_count > 0:
+                        st.write("**Top Dividend Payers**")
+                        top_dividend = dividend_analysis.nlargest(3, 'Dividend Yield %')
+                        for _, stock in top_dividend.iterrows():
+                            if stock['Dividend Yield %'] > 0:
+                                st.write(f"**{stock['Ticker']}**: {stock['Dividend Yield %']:.2f}%")
+                                st.write(f"Annual: {currency} {stock['Annual Dividend']:.2f}")
+                                st.markdown("---")
+            else:
+                st.info("Dividend analysis not available. Ensure your stocks have dividend data.")
+
+            # Portfolio Diversification Section
+            st.markdown("---")
+            st.subheader("📊 Portfolio Diversification")
+
+            # Calculate diversification metrics
+            diversification_metrics = calculate_diversification_metrics(df)
+
+            if diversification_metrics:
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.metric("Sector Count", diversification_metrics['sector_count'])
+                    st.metric("Stock Count", diversification_metrics['stock_count'])
+
+                with col2:
+                    st.metric("Largest Position %", f"{diversification_metrics['largest_position_pct']:.1f}%")
+                    st.metric("Top 5 Holdings %", f"{diversification_metrics['top_5_pct']:.1f}%")
+
+                with col3:
+                    st.metric("Diversification Score", f"{diversification_metrics['diversification_score']:.1f}/10")
+                    st.metric("Risk Level", diversification_metrics['risk_level'])
+
+                # Diversification recommendations
+                st.write("**Diversification Analysis**")
+                if diversification_metrics['diversification_score'] >= 7:
+                    st.success("✅ Well-diversified portfolio! Your investments are spread across multiple sectors and positions.")
+                elif diversification_metrics['diversification_score'] >= 5:
+                    st.warning("⚠️ Moderately diversified. Consider adding more sectors or reducing concentration in top holdings.")
+                else:
+                    st.error("❌ Low diversification. High concentration risk detected. Consider spreading investments across more sectors and stocks.")
+
+                # Specific recommendations
+                if diversification_metrics['largest_position_pct'] > 20:
+                    st.warning(f"⚠️ Your largest position represents {diversification_metrics['largest_position_pct']:.1f}% of your portfolio. Consider reducing concentration risk.")
+
+                if diversification_metrics['sector_count'] < 3:
+                    st.warning("⚠️ Limited sector diversification. Consider adding stocks from different industries.")
+
+                if diversification_metrics['top_5_pct'] > 70:
+                    st.warning(f"⚠️ Top 5 holdings represent {diversification_metrics['top_5_pct']:.1f}% of your portfolio. Consider spreading risk across more positions.")
+            else:
+                st.info("Diversification analysis not available. Ensure you have stocks in your portfolio.")
+
             # Stock News Feed Section
             st.markdown("---")
             st.subheader("📰 Latest Stock News")
@@ -1803,7 +2283,7 @@ if selected_portfolio:
                                             st.success(f"😊 {sentiment}")
                                         elif sentiment == "Negative":
                                             st.error(f"😟 {sentiment}")
-        else:
+                                        else:
                                             st.info(f"😐 {sentiment}")
 
                                     # Article details
@@ -1817,7 +2297,7 @@ if selected_portfolio:
                                         st.caption(f"🕒 {article['time_published']}")
 
                                     st.markdown("---")
-    else:
+                        else:
                             st.info(f"No recent news found for {ticker}")
             else:
                 st.warning(
@@ -2120,16 +2600,17 @@ if selected_portfolio:
             st.markdown(
                 """
             **Possible causes:**
-            - API rate limits reached (try again in a few minutes)
-            - Invalid ticker symbols
-            - Network connectivity issues
-            - All data sources temporarily unavailable
+            - ⏱️ API rate limits reached (free tiers have daily limits)
+            - ❌ Invalid ticker symbols (check format: AAPL for US, PETR4 for Brazilian)
+            - 🌐 Network connectivity issues
+            - 🔧 All data sources temporarily unavailable
 
             **What you can do:**
-            - ✅ Check your ticker symbols are correct
-            - ✅ Wait a few minutes and refresh the page
-            - ✅ Verify your internet connection
-            - ✅ Try adding API keys in your `.env` file for better reliability
+            - ✅ Check your ticker symbols are correct (use the format shown in the sidebar)
+            - ⏳ Wait a few minutes and refresh the page (API limits reset daily)
+            - 🌐 Verify your internet connection
+            - 🔑 Try adding API keys in your `.env` file for better reliability
+            - 🧹 Run `python3 clear_cache.py` if you made recent changes
             """
             )
 
@@ -2165,15 +2646,42 @@ if selected_portfolio:
 
             if fallback_data:
                 fallback_df = pd.DataFrame(fallback_data)
-                st.dataframe(fallback_df, use_container_width=True, hide_index=True)
+                st.dataframe(fallback_df, width="stretch", hide_index=True)
 
     else:
         st.info(
-            f"No stocks in {selected_portfolio} portfolio. Use the sidebar to add stocks."
+            f"📊 **No stocks in {selected_portfolio} portfolio**"
+        )
+        st.markdown(
+            """
+            **Get started:**
+            1. 📝 Use the sidebar to add stocks to your portfolio
+            2. 🏷️ Enter the correct ticker symbol (e.g., AAPL for Apple, PETR4 for Petrobras)
+            3. 💰 Add the quantity and average price you paid
+            4. 🔄 The dashboard will automatically fetch real-time data
+
+            **Ticker format examples:**
+            - **US stocks**: AAPL, GOOGL, MSFT, TSLA
+            - **Brazilian stocks**: PETR4, VALE3, ITUB4, BBDC4
+            """
         )
 
 else:
-    st.info("Please select or create a portfolio to get started.")
+    st.info("📊 **Welcome to your Portfolio Dashboard!**")
+    st.markdown(
+        """
+        **To get started:**
+        1. 🏗️ **Create a portfolio** using the sidebar (e.g., "Brazilian", "US", "Tech Stocks")
+        2. 📈 **Add stocks** to your portfolio with ticker symbols, quantities, and average prices
+        3. 📊 **View analytics** including sector analysis, dividend tracking, and diversification metrics
+        4. 🤖 **Explore AI features** for portfolio insights and trading signals
+        5. 📰 **Check news** for your portfolio stocks with sentiment analysis
+
+        **Supported markets:**
+        - 🇺🇸 **US stocks**: AAPL, GOOGL, MSFT, TSLA, etc.
+        - 🇧🇷 **Brazilian stocks**: PETR4, VALE3, ITUB4, BBDC4, etc.
+        """
+    )
 
 # Settings
 st.sidebar.markdown("---")
