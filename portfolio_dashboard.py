@@ -195,10 +195,10 @@ def fetch_enhanced_stock_data(
             hist["High"], hist["Low"], hist["Close"], hist["Volume"]
         )
 
-        return {
-            "current_price": current_price,
-            "previous_close": prev_close,
-            "change": current_price - prev_close,
+                return {
+                    "current_price": current_price,
+                    "previous_close": prev_close,
+                    "change": current_price - prev_close,
             "change_percent": (
                 ((current_price - prev_close) / prev_close) * 100
                 if prev_close != 0
@@ -259,7 +259,7 @@ def fetch_enhanced_stock_data(
                     else None
                 ),
             },
-        }
+                }
     except Exception as e:
         # Silently handle yfinance errors - they're common for delisted/problematic stocks
         # Only log if it's not a common yfinance JSON parsing error
@@ -378,9 +378,9 @@ def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
                     stock_data.get("regularMarketPreviousClose", current_price)
                 )
 
-                if current_price > 0:
-                    return {
-                        "current_price": current_price,
+            if current_price > 0:
+                return {
+                    "current_price": current_price,
                         "previous_close": prev_close,
                         "change": current_price - prev_close,
                         "change_percent": (
@@ -426,9 +426,9 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
                 current_price = float(quote["05. price"])
                 prev_close = float(quote.get("08. previous close", current_price))
 
-        return {
-            "current_price": current_price,
-            "previous_close": prev_close,
+            return {
+                "current_price": current_price,
+                "previous_close": prev_close,
             "change": float(quote.get("09. change", 0)),
             "change_percent": float(
                 quote.get("10. change percent", "0").replace("%", "")
@@ -740,7 +740,7 @@ def check_ollama_availability() -> Dict[str, bool]:
         if response.status_code == 200:
             models = response.json().get("models", [])
             model_names = [model.get("name", "") for model in models]
-        return {
+    return {
             "available": True,
             "models": model_names,
             "has_llama": any("llama" in name.lower() for name in model_names),
@@ -1282,16 +1282,16 @@ def create_portfolio_dataframe_progressive(
             status = "✅"
         else:
             # If no real-time data available, use average price as placeholder
-            current_price = avg_price
+                current_price = avg_price
             day_change = 0
             day_change_percent = 0
             currency = "BRL" if market == "Brazilian" else "USD"
             status = "⚠️"
 
         # Calculate portfolio metrics
-        total_invested = quantity * avg_price
-        current_value = quantity * current_price
-        gain_loss = current_value - total_invested
+            total_invested = quantity * avg_price
+            current_value = quantity * current_price
+            gain_loss = current_value - total_invested
         gain_loss_percent = (
             (gain_loss / total_invested) * 100 if total_invested != 0 else 0
         )
@@ -1310,6 +1310,9 @@ def create_portfolio_dataframe_progressive(
                 "Day Change": day_change,
                 "Day Change %": day_change_percent,
                 "Currency": currency,
+                "Sector": "Unknown",
+                "Dividend Yield %": 0,
+                "Annual Dividend": 0,
             }
         )
 
@@ -1467,7 +1470,7 @@ if selected_portfolio:
                 "Quantity", min_value=0.001, value=1.0, step=0.001, format="%.3f"
             )
         else:
-            quantity_input = st.number_input("Quantity", min_value=1, value=1)
+        quantity_input = st.number_input("Quantity", min_value=1, value=1)
         avg_price_input = st.number_input(
             "Average Price", min_value=0.01, value=1.0, step=0.01
         )
@@ -1559,7 +1562,7 @@ if selected_portfolio:
                 # Use regular loading for smaller portfolios
                 if num_stocks > 3:
                     st.info(f"🔄 Loading data for {num_stocks} stocks...")
-                df = create_portfolio_dataframe(portfolio_stocks, market_type)
+            df = create_portfolio_dataframe(portfolio_stocks, market_type)
 
         # Show loading summary and error details if any
         if not df.empty:
@@ -1800,7 +1803,7 @@ if selected_portfolio:
                                             st.success(f"😊 {sentiment}")
                                         elif sentiment == "Negative":
                                             st.error(f"😟 {sentiment}")
-                                        else:
+        else:
                                             st.info(f"😐 {sentiment}")
 
                                     # Article details
@@ -1814,7 +1817,7 @@ if selected_portfolio:
                                         st.caption(f"🕒 {article['time_published']}")
 
                                     st.markdown("---")
-                        else:
+    else:
                             st.info(f"No recent news found for {ticker}")
             else:
                 st.warning(
