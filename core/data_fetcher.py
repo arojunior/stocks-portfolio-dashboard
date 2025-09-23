@@ -13,6 +13,16 @@ from io import StringIO
 from contextlib import redirect_stderr
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
+
+
+class SuppressYFinanceOutput:
+    def __enter__(self):
+        self._original_stderr = sys.stderr
+        sys.stderr = StringIO()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stderr = self._original_stderr
 from bs4 import BeautifulSoup
 
 from app.config import (
@@ -233,10 +243,12 @@ def fetch_enhanced_stock_data(
 
 
 def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
-    """Fetch stock data with smart fallback strategy based on market"""
+    """Fetch real-time stock data with smart fallback strategy"""
+    import os
+    
     # Check if we have API keys available
-    has_twelve_data = bool(API_KEYS.get("TWELVE_DATA_API_KEY"))
-    has_alpha_vantage = bool(API_KEYS.get("ALPHA_VANTAGE_API_KEY"))
+    has_twelve_data = bool(os.getenv("TWELVE_DATA_API_KEY"))
+    has_alpha_vantage = bool(os.getenv("ALPHA_VANTAGE_API_KEY"))
 
     # Smart prioritization based on market and API availability
     data_sources = []
@@ -258,57 +270,105 @@ def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     # Try sources sequentially to avoid rate limit issues
     for source_name, fetch_func in data_sources:
         try:
-            # Add rate limiting
-            rate_limit_key = source_name.lower().replace(" ", "_")
-            sleep_time = RATE_LIMITS.get(rate_limit_key, 0.5)
-            time.sleep(sleep_time)
-            
             result = fetch_func()
             if result and result.get("current_price", 0) > 0:
                 return result
         except Exception as e:
-            print(f"Error with {source_name} for {ticker}: {e}")
             continue
 
     # If all sources fail, return None
     return None
 
 
-def fetch_from_yahoo_finance(ticker: str, market: str = "US") -> Optional[Dict]:
-    """Fetch stock data from Yahoo Finance"""
+def fetch_enhanced_stock_data(
+    ticker: str, market: str = "US", period: str = "1mo"
+) -> Optional[Dict]:
+    """Enhanced stock data fetching with technical indicators (inspired by DeepCharts)"""
     try:
+        # Format ticker for market
         if market == "Brazilian" and not ticker.endswith(".SA"):
             ticker_symbol = f"{ticker}.SA"
         else:
             ticker_symbol = ticker
 
+        # Fetch extended historical data for technical analysis (suppress yfinance errors)
         with SuppressYFinanceOutput():
             stock = yf.Ticker(ticker_symbol)
-            hist = stock.history(period="1d")
+            hist = stock.history(period=period, interval="1d")
 
-            if hist.empty:
-                return None
+            # Get additional stock info for sector and dividend data
+            info = {}
+            try:
+                info = stock.info
+            except Exception as e:
+                # If rate limited or other error, try to get basic info
+                try:
+                    # Try to get just the basic info without the full details
+                    info = {
+                        "sector": "Unknown",
+                        "dividendYield": None,
+                        "trailingAnnualDividendYield": None,
+                        "forwardDividendYield": None
+                    }
+                except:
+                    info = {}
 
-            info = stock.info
-            current_price = hist['Close'].iloc[-1]
-            prev_close = hist['Open'].iloc[-1]
-            change = current_price - prev_close
-            change_percent = (change / prev_close) * 100 if prev_close > 0 else 0
+        if hist.empty:
+            # If no historical data, return None silently (don't log error)
+            return None
 
-            return {
-                "ticker": ticker,
-                "current_price": current_price,
-                "change": change,
-                "change_percent": change_percent,
-                "volume": hist['Volume'].iloc[-1],
-                "market_cap": info.get("marketCap", 0),
-                "sector": get_sector_info(ticker, market, info),
-                "dividend_yield": get_dividend_yield(ticker, market, info),
-                "info": info
-            }
+        # Process data similar to DeepCharts approach
+        if isinstance(hist.columns, pd.MultiIndex):
+            hist.columns = hist.columns.droplevel(1)
+
+        # Ensure timezone awareness
+        if hist.index.tzinfo is None:
+            hist.index = hist.index.tz_localize("UTC")
+        hist.index = hist.index.tz_convert("US/Eastern")
+
+        # Calculate basic metrics
+        current_price = float(hist["Close"].iloc[-1])
+        prev_close = float(hist["Close"].iloc[-2]) if len(hist) > 1 else current_price
+        volume = int(hist["Volume"].iloc[-1]) if not hist["Volume"].empty else 0
+
+        return {
+            "current_price": current_price,
+            "previous_close": prev_close,
+            "change": current_price - prev_close,
+            "change_percent": (
+                ((current_price - prev_close) / prev_close) * 100
+                if prev_close != 0
+                else 0
+            ),
+            "volume": volume,
+            "currency": "USD" if market == "US" else "BRL",
+            "sector": info.get("sector", "Unknown"),
+            "dividend_yield": get_dividend_yield_from_yfinance(ticker, market, info),
+            "annual_dividend": get_annual_dividend(ticker, market, info),
+            "info": info,
+        }
     except Exception as e:
-        print(f"Error fetching from Yahoo Finance for {ticker}: {e}")
+        print(f"Error fetching enhanced data for {ticker}: {e}")
         return None
+
+
+def fetch_from_yahoo_finance(ticker: str, market: str = "US") -> Optional[Dict]:
+    """Fallback: Simple stock data from Yahoo Finance"""
+    enhanced_data = fetch_enhanced_stock_data(ticker, market, period="5d")
+    if enhanced_data:
+        # Return simplified version for compatibility
+        return {
+            "current_price": enhanced_data["current_price"],
+            "previous_close": enhanced_data["previous_close"],
+            "change": enhanced_data["change"],
+            "change_percent": enhanced_data["change_percent"],
+            "volume": enhanced_data["volume"],
+            "currency": enhanced_data["currency"],
+            "sector": enhanced_data.get("sector", "Unknown"),
+            "dividend_yield": enhanced_data.get("dividend_yield", 0),
+            "annual_dividend": enhanced_data.get("annual_dividend", 0),
+        }
+    return None
 
 
 def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
