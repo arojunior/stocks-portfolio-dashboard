@@ -8,40 +8,54 @@ from typing import Dict, Optional
 
 
 def fetch_stock_quote(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
-    """Fetch Brazilian stock quote from BRAPI"""
+    """Fetch Brazilian stock data from BRAPI (Brazilian stock API with API key support)"""
     if market != "Brazilian":
         return None
 
     try:
-        # Remove .SA suffix for BRAPI
-        clean_ticker = ticker.replace(".SA", "")
+        import os
+        # Get API key from environment
+        api_key = os.getenv("BRAPI_API_KEY")
 
-        url = f"https://brapi.dev/api/quote/{clean_ticker}"
-        params = {
-            "range": "1d",
-            "interval": "1d"
-        }
+        # Remove .SA suffix if present, BRAPI uses just the ticker
+        symbol = ticker.replace(".SA", "")
 
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
+        # Build URL with API key if available
+        if api_key:
+            url = f"https://brapi.dev/api/quote/{symbol}?token={api_key}"
+        else:
+            url = f"https://brapi.dev/api/quote/{symbol}"
 
-        if "results" in data and data["results"]:
-            result = data["results"][0]
-            current_price = float(result.get("regularMarketPrice", 0))
-            change = float(result.get("regularMarketChange", 0))
-            change_percent = float(result.get("regularMarketChangePercent", 0))
+        response = requests.get(url, timeout=10)
 
-            return {
-                "ticker": ticker,
-                "current_price": current_price,
-                "change": change,
-                "change_percent": change_percent,
-                "volume": int(result.get("regularMarketVolume", 0)),
-                "market_cap": float(result.get("marketCap", 0)),
-                "info": result
-            }
+        if response.status_code == 200:
+            data = response.json()
+
+            if "results" in data and data["results"]:
+                stock_data = data["results"][0]
+
+                current_price = float(stock_data.get("regularMarketPrice", 0))
+                prev_close = float(
+                    stock_data.get("regularMarketPreviousClose", current_price)
+                )
+
+                if current_price > 0:
+                    return {
+                        "current_price": current_price,
+                        "previous_close": prev_close,
+                        "change": current_price - prev_close,
+                        "change_percent": (
+                            ((current_price - prev_close) / prev_close) * 100
+                            if prev_close != 0
+                            else 0
+                        ),
+                        "volume": int(stock_data.get("regularMarketVolume", 0)),
+                        "currency": "BRL",
+                        "info": stock_data
+                    }
+
     except Exception as e:
+        # Silently handle BRAPI errors
         print(f"Error fetching from BRAPI for {ticker}: {e}")
         return None
 

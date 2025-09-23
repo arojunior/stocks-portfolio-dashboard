@@ -233,29 +233,44 @@ def fetch_enhanced_stock_data(
 
 
 def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
-    """Fetch stock data with fallback to multiple APIs"""
-    # Try different APIs in order of preference
-    apis = [
-        ("Twelve Data", lambda: fetch_from_twelve_data(ticker, market)),
-        ("Alpha Vantage", lambda: fetch_from_alpha_vantage(ticker, market)),
-        ("BRAPI", lambda: fetch_from_brapi(ticker, market)),
-        ("Yahoo Finance", lambda: fetch_from_yahoo_finance(ticker, market))
-    ]
+    """Fetch stock data with smart fallback strategy based on market"""
+    # Check if we have API keys available
+    has_twelve_data = bool(API_KEYS.get("TWELVE_DATA_API_KEY"))
+    has_alpha_vantage = bool(API_KEYS.get("ALPHA_VANTAGE_API_KEY"))
 
-    for api_name, fetch_func in apis:
+    # Smart prioritization based on market and API availability
+    data_sources = []
+
+    if market == "Brazilian":
+        # For Brazilian stocks: BRAPI (free) -> Alpha Vantage -> Yahoo Finance
+        data_sources.append(("BRAPI", lambda: fetch_from_brapi(ticker, market)))
+        if has_alpha_vantage:
+            data_sources.append(("Alpha Vantage", lambda: fetch_from_alpha_vantage(ticker, market)))
+        data_sources.append(("Yahoo Finance", lambda: fetch_from_yahoo_finance(ticker, market)))
+    else:
+        # For US stocks: Twelve Data -> Alpha Vantage -> Yahoo Finance
+        if has_twelve_data:
+            data_sources.append(("Twelve Data", lambda: fetch_from_twelve_data(ticker, market)))
+        if has_alpha_vantage:
+            data_sources.append(("Alpha Vantage", lambda: fetch_from_alpha_vantage(ticker, market)))
+        data_sources.append(("Yahoo Finance", lambda: fetch_from_yahoo_finance(ticker, market)))
+
+    # Try sources sequentially to avoid rate limit issues
+    for source_name, fetch_func in data_sources:
         try:
             # Add rate limiting
-            rate_limit_key = api_name.lower().replace(" ", "_")
+            rate_limit_key = source_name.lower().replace(" ", "_")
             sleep_time = RATE_LIMITS.get(rate_limit_key, 0.5)
             time.sleep(sleep_time)
             
-            data = fetch_func()
-            if data:
-                return data
+            result = fetch_func()
+            if result and result.get("current_price", 0) > 0:
+                return result
         except Exception as e:
-            print(f"Error with {api_name} for {ticker}: {e}")
+            print(f"Error with {source_name} for {ticker}: {e}")
             continue
 
+    # If all sources fail, return None
     return None
 
 
