@@ -80,22 +80,8 @@ def create_portfolio_table(df: pd.DataFrame):
     """Create the portfolio table display"""
     st.subheader("📊 Portfolio Holdings")
 
-    # Style the dataframe with safe formatting
-    format_dict = {}
-
-    # Only apply formatting to columns that exist and are numeric
-    if 'Gain/Loss %' in df.columns:
-        format_dict['Gain/Loss %'] = '{:.2f}%'
-    if 'Daily Change' in df.columns:
-        format_dict['Daily Change'] = '{:.2f}%'
-    if 'Dividend Yield' in df.columns:
-        format_dict['Dividend Yield'] = '{:.2f}%'
-
-    # Apply formatting only if we have columns to format
-    if format_dict:
-        styled_df = df.style.format(format_dict)
-    else:
-        styled_df = df
+    # Style the dataframe - disable formatting to avoid errors
+    styled_df = df
 
     st.dataframe(styled_df, width='stretch', height=400)
 
