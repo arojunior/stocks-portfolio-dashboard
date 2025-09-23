@@ -245,7 +245,7 @@ def fetch_enhanced_stock_data(
 def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     """Fetch real-time stock data with smart fallback strategy"""
     import os
-    
+
     # Check if we have API keys available
     has_twelve_data = bool(os.getenv("TWELVE_DATA_API_KEY"))
     has_alpha_vantage = bool(os.getenv("ALPHA_VANTAGE_API_KEY"))
@@ -461,16 +461,19 @@ def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
         return None
 
     try:
+        # Get API key from environment
+        api_key = os.getenv("BRAPI_API_KEY")
+        
         # Remove .SA suffix for BRAPI
         clean_ticker = ticker.replace(".SA", "")
 
-        url = f"https://brapi.dev/api/quote/{clean_ticker}"
-        params = {
-            "range": "1d",
-            "interval": "1d"
-        }
+        # Build URL with API key if available
+        if api_key:
+            url = f"https://brapi.dev/api/quote/{clean_ticker}?token={api_key}"
+        else:
+            url = f"https://brapi.dev/api/quote/{clean_ticker}"
 
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.json()
 
@@ -486,7 +489,8 @@ def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
                 "change": change,
                 "change_percent": change_percent,
                 "volume": int(result.get("regularMarketVolume", 0)),
-                "market_cap": float(result.get("marketCap", 0)),
+                "market_cap": float(result.get("marketCap", 0)) if result.get("marketCap") is not None else 0,
+                "currency": "BRL",
                 "sector": get_sector_info(ticker, market, result),
                 "dividend_yield": get_dividend_yield(ticker, market, result),
                 "info": result

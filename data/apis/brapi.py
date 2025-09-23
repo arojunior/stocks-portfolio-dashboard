@@ -4,7 +4,15 @@ Handles all BRAPI operations for Brazilian stocks
 """
 
 import requests
+import os
 from typing import Dict, Optional
+
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv is optional
 
 
 def fetch_stock_quote(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
