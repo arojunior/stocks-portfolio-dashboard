@@ -23,7 +23,7 @@ def fetch_stock_quote(ticker: str, market: str = "US") -> Optional[Dict]:
         with SuppressYFinanceOutput():
             stock = yf.Ticker(ticker_symbol)
             hist = stock.history(period="1d")
-            
+
             if hist.empty:
                 return None
 
@@ -59,7 +59,7 @@ def fetch_historical_data(ticker: str, market: str = "US", period: str = "1mo") 
         with SuppressYFinanceOutput():
             stock = yf.Ticker(ticker_symbol)
             hist = stock.history(period=period, interval="1d")
-            
+
             if hist.empty:
                 return None
 
@@ -84,16 +84,16 @@ def fetch_dividend_data(ticker: str, market: str = "US") -> Optional[Dict]:
 
         with SuppressYFinanceOutput():
             stock = yf.Ticker(ticker_symbol)
-            
+
             # Get dividend history
             dividends = stock.dividends
             info = stock.info
-            
+
             # Get current dividend yield
             dividend_yield = info.get("dividendYield", 0)
             if dividend_yield and dividend_yield < 1:
                 dividend_yield = dividend_yield * 100  # Convert to percentage
-            
+
             return {
                 "ticker": ticker,
                 "dividend_yield": dividend_yield,
@@ -117,30 +117,30 @@ def fetch_enhanced_data(ticker: str, market: str = "US", period: str = "1mo") ->
         with SuppressYFinanceOutput():
             stock = yf.Ticker(ticker_symbol)
             hist = stock.history(period=period, interval="1d")
-            
+
             if hist.empty:
                 return None
 
             info = stock.info
-            
+
             # Calculate technical indicators
             hist['SMA_20'] = hist['Close'].rolling(window=20).mean()
             hist['SMA_50'] = hist['Close'].rolling(window=50).mean()
             hist['EMA_20'] = hist['Close'].ewm(span=20).mean()
-            
+
             # RSI calculation
             delta = hist['Close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
             rs = gain / loss
             hist['RSI'] = 100 - (100 / (1 + rs))
-            
+
             # Bollinger Bands
             hist['BB_Middle'] = hist['Close'].rolling(window=20).mean()
             bb_std = hist['Close'].rolling(window=20).std()
             hist['BB_Upper'] = hist['BB_Middle'] + (bb_std * 2)
             hist['BB_Lower'] = hist['BB_Middle'] - (bb_std * 2)
-            
+
             # MACD
             exp1 = hist['Close'].ewm(span=12).mean()
             exp2 = hist['Close'].ewm(span=26).mean()

@@ -16,8 +16,8 @@ from typing import Dict, List, Optional
 from bs4 import BeautifulSoup
 
 from app.config import (
-    BRAZILIAN_SECTORS, 
-    BRAZILIAN_DIVIDEND_YIELDS, 
+    BRAZILIAN_SECTORS,
+    BRAZILIAN_DIVIDEND_YIELDS,
     API_KEYS,
     RATE_LIMITS
 )
@@ -105,7 +105,7 @@ def get_dividend_yield(ticker: str, market: str, info: Dict) -> float:
     # First, try to get live dividend data from API response
     dividend_fields = [
         "dividendYield",
-        "trailingAnnualDividendYield", 
+        "trailingAnnualDividendYield",
         "forwardDividendYield",
         "dividendRate",
         "yield",
@@ -183,20 +183,20 @@ def fetch_enhanced_stock_data(
             hist['SMA_20'] = hist['Close'].rolling(window=20).mean()
             hist['SMA_50'] = hist['Close'].rolling(window=50).mean()
             hist['EMA_20'] = hist['Close'].ewm(span=20).mean()
-            
+
             # RSI calculation
             delta = hist['Close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
             rs = gain / loss
             hist['RSI'] = 100 - (100 / (1 + rs))
-            
+
             # Bollinger Bands
             hist['BB_Middle'] = hist['Close'].rolling(window=20).mean()
             bb_std = hist['Close'].rolling(window=20).std()
             hist['BB_Upper'] = hist['BB_Middle'] + (bb_std * 2)
             hist['BB_Lower'] = hist['BB_Middle'] - (bb_std * 2)
-            
+
             # MACD
             exp1 = hist['Close'].ewm(span=12).mean()
             exp2 = hist['Close'].ewm(span=26).mean()
@@ -245,7 +245,9 @@ def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     for api_name, fetch_func in apis:
         try:
             # Add rate limiting
-            time.sleep(RATE_LIMITS.get(api_name.lower().replace(" ", "_"), 0.5))
+            rate_limit_key = api_name.lower().replace(" ", "_")
+            sleep_time = RATE_LIMITS.get(rate_limit_key, 0.5)
+            time.sleep(sleep_time)
             
             data = fetch_func()
             if data:
@@ -268,7 +270,7 @@ def fetch_from_yahoo_finance(ticker: str, market: str = "US") -> Optional[Dict]:
         with SuppressYFinanceOutput():
             stock = yf.Ticker(ticker_symbol)
             hist = stock.history(period="1d")
-            
+
             if hist.empty:
                 return None
 
@@ -317,8 +319,8 @@ def fetch_from_twelve_data(ticker: str, market: str = "US") -> Optional[Dict]:
         response.raise_for_status()
         data = response.json()
 
-        if "price" in data:
-            current_price = float(data["price"])
+        if "close" in data:
+            current_price = float(data["close"])
             change = float(data.get("change", 0))
             change_percent = float(data.get("percent_change", 0))
 
@@ -386,7 +388,7 @@ def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
     try:
         # Remove .SA suffix for BRAPI
         clean_ticker = ticker.replace(".SA", "")
-        
+
         url = f"https://brapi.dev/api/quote/{clean_ticker}"
         params = {
             "range": "1d",

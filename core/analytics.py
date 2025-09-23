@@ -19,9 +19,9 @@ def calculate_portfolio_metrics(portfolio_data: List[Dict]) -> Dict:
     total_gain_loss_percent = (total_gain_loss / total_cost * 100) if total_cost > 0 else 0
 
     # Best and worst performers
-    performers = [(stock.get("ticker", ""), stock.get("gain_loss_percent", 0)) 
+    performers = [(stock.get("ticker", ""), stock.get("gain_loss_percent", 0))
                  for stock in portfolio_data if stock.get("gain_loss_percent") is not None]
-    
+
     best_performer = max(performers, key=lambda x: x[1]) if performers else ("", 0)
     worst_performer = min(performers, key=lambda x: x[1]) if performers else ("", 0)
 
@@ -59,27 +59,27 @@ def calculate_portfolio_metrics(portfolio_data: List[Dict]) -> Dict:
 def create_portfolio_dataframe(portfolio_stocks: Dict, stock_data: Dict) -> pd.DataFrame:
     """Create a comprehensive portfolio DataFrame"""
     portfolio_data = []
-    
+
     for ticker, position in portfolio_stocks.items():
         quantity = position.get("quantity", 0)
         avg_price = position.get("avg_price", 0)
-        
+
         if ticker in stock_data and stock_data[ticker]:
             data = stock_data[ticker]
             current_price = data.get("current_price", 0)
             change_percent = data.get("change_percent", 0)
             sector = data.get("sector", "Unknown")
             dividend_yield = data.get("dividend_yield", 0)
-            
+
             # Calculate position metrics
             total_cost = quantity * avg_price
             total_value = quantity * current_price
             gain_loss = total_value - total_cost
             gain_loss_percent = (gain_loss / total_cost * 100) if total_cost > 0 else 0
-            
+
             # Calculate annual dividend income
             annual_dividend = (dividend_yield / 100) * total_value if dividend_yield > 0 else 0
-            
+
             portfolio_data.append({
                 "Ticker": ticker,
                 "Quantity": quantity,
@@ -100,7 +100,7 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, stock_data: Dict) -> pd.D
                 "sector": sector,
                 "dividend_yield": dividend_yield
             })
-    
+
     return pd.DataFrame(portfolio_data)
 
 
@@ -108,10 +108,10 @@ def calculate_sector_diversification(sectors: Dict) -> Dict:
     """Calculate sector diversification metrics"""
     if not sectors:
         return {"concentration_risk": "High", "diversification_score": 0}
-    
+
     # Calculate Herfindahl-Hirschman Index (HHI) for concentration
     hhi = sum(percentage ** 2 for percentage in sectors.values() if isinstance(percentage, (int, float)))
-    
+
     # Determine concentration risk
     if hhi > 2500:  # > 50% in one sector
         concentration_risk = "Very High"
@@ -121,11 +121,11 @@ def calculate_sector_diversification(sectors: Dict) -> Dict:
         concentration_risk = "Medium"
     else:
         concentration_risk = "Low"
-    
+
     # Calculate diversification score (0-100)
     max_sector_percentage = max(sectors.values()) if sectors else 0
     diversification_score = max(0, 100 - (max_sector_percentage * 2))
-    
+
     return {
         "concentration_risk": concentration_risk,
         "diversification_score": diversification_score,
@@ -138,7 +138,7 @@ def generate_portfolio_summary(portfolio_data: List[Dict], metrics: Dict) -> str
     """Generate a text summary of portfolio performance"""
     if not portfolio_data:
         return "No stocks in portfolio"
-    
+
     summary = f"""
 📊 **Portfolio Summary**
 - **Total Value**: ${metrics.get('total_value', 0):,.2f}
@@ -152,7 +152,7 @@ def generate_portfolio_summary(portfolio_data: List[Dict], metrics: Dict) -> str
 - **Best**: {metrics.get('best_performer', {}).get('ticker', 'N/A')} ({metrics.get('best_performer', {}).get('return', 0):.2f}%)
 - **Worst**: {metrics.get('worst_performer', {}).get('ticker', 'N/A')} ({metrics.get('worst_performer', {}).get('return', 0):.2f}%)
 """
-    
+
     return summary
 
 
@@ -160,18 +160,18 @@ def calculate_risk_metrics(portfolio_data: List[Dict]) -> Dict:
     """Calculate portfolio risk metrics"""
     if not portfolio_data:
         return {}
-    
+
     # Calculate portfolio volatility (simplified)
     returns = [stock.get("gain_loss_percent", 0) for stock in portfolio_data if stock.get("gain_loss_percent") is not None]
-    
+
     if len(returns) < 2:
         return {"volatility": 0, "risk_level": "Low"}
-    
+
     # Simple volatility calculation
     mean_return = sum(returns) / len(returns)
     variance = sum((r - mean_return) ** 2 for r in returns) / len(returns)
     volatility = variance ** 0.5
-    
+
     # Determine risk level
     if volatility > 20:
         risk_level = "High"
@@ -179,7 +179,7 @@ def calculate_risk_metrics(portfolio_data: List[Dict]) -> Dict:
         risk_level = "Medium"
     else:
         risk_level = "Low"
-    
+
     return {
         "volatility": volatility,
         "risk_level": risk_level,

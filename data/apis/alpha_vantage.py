@@ -68,7 +68,7 @@ def fetch_historical_data(ticker: str, market: str = "US", period: str = "1mo") 
             "symbol": ticker,
             "apikey": api_key
         }
-        
+
         if interval:
             params["interval"] = interval
 

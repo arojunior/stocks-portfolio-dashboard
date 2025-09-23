@@ -67,7 +67,7 @@ def fetch_historical_data(ticker: str, market: str = "US", period: str = "1mo") 
         # Map period to Twelve Data format
         period_map = {
             "1d": "1day",
-            "5d": "5day", 
+            "5d": "5day",
             "1mo": "1month",
             "3mo": "3month",
             "6mo": "6month",
@@ -75,7 +75,7 @@ def fetch_historical_data(ticker: str, market: str = "US", period: str = "1mo") 
             "2y": "2year",
             "5y": "5year"
         }
-        
+
         interval = period_map.get(period, "1day")
 
         url = f"https://api.twelvedata.com/time_series"

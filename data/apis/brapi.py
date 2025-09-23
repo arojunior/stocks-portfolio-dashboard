@@ -15,7 +15,7 @@ def fetch_stock_quote(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
     try:
         # Remove .SA suffix for BRAPI
         clean_ticker = ticker.replace(".SA", "")
-        
+
         url = f"https://brapi.dev/api/quote/{clean_ticker}"
         params = {
             "range": "1d",
@@ -54,7 +54,7 @@ def fetch_historical_data(ticker: str, market: str = "Brazilian", period: str = 
     try:
         # Remove .SA suffix for BRAPI
         clean_ticker = ticker.replace(".SA", "")
-        
+
         # Map period to BRAPI format
         period_map = {
             "1d": "1d",
@@ -66,7 +66,7 @@ def fetch_historical_data(ticker: str, market: str = "Brazilian", period: str = 
             "2y": "2y",
             "5y": "5y"
         }
-        
+
         range_param = period_map.get(period, "1mo")
 
         url = f"https://brapi.dev/api/quote/{clean_ticker}"
@@ -82,7 +82,7 @@ def fetch_historical_data(ticker: str, market: str = "Brazilian", period: str = 
         if "results" in data and data["results"]:
             result = data["results"][0]
             historical_data = result.get("historicalDataPrice", [])
-            
+
             return {
                 "ticker": ticker,
                 "historical_data": historical_data,
@@ -101,7 +101,7 @@ def fetch_dividend_data(ticker: str, market: str = "Brazilian") -> Optional[Dict
     try:
         # Remove .SA suffix for BRAPI
         clean_ticker = ticker.replace(".SA", "")
-        
+
         url = f"https://brapi.dev/api/quote/{clean_ticker}"
         params = {
             "range": "1y",
@@ -115,7 +115,7 @@ def fetch_dividend_data(ticker: str, market: str = "Brazilian") -> Optional[Dict
         if "results" in data and data["results"]:
             result = data["results"][0]
             dividends = result.get("dividends", [])
-            
+
             return {
                 "ticker": ticker,
                 "dividend_history": dividends,
@@ -134,7 +134,7 @@ def fetch_company_info(ticker: str, market: str = "Brazilian") -> Optional[Dict]
     try:
         # Remove .SA suffix for BRAPI
         clean_ticker = ticker.replace(".SA", "")
-        
+
         url = f"https://brapi.dev/api/quote/{clean_ticker}"
         params = {
             "range": "1d",
@@ -147,7 +147,7 @@ def fetch_company_info(ticker: str, market: str = "Brazilian") -> Optional[Dict]
 
         if "results" in data and data["results"]:
             result = data["results"][0]
-            
+
             return {
                 "ticker": ticker,
                 "company_info": result,

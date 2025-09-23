@@ -36,37 +36,37 @@ def main():
     """Main application function"""
     # Page configuration
     st.set_page_config(**PAGE_CONFIG)
-    
+
     # Initialize portfolio manager
     if "portfolio_manager" not in st.session_state:
         st.session_state.portfolio_manager = PortfolioManager()
         # Migrate old portfolio structure if needed
         st.session_state.portfolio_manager.migrate_old_portfolio_structure()
-    
+
     portfolio_manager = st.session_state.portfolio_manager
-    
+
     # Main title
     st.title("📈 Stock Portfolio Management Dashboard")
     st.markdown("*Replace your Google Spreadsheet with real-time portfolio tracking*")
     st.markdown("---")
-    
+
     # Create sidebar
     selected_portfolio = create_portfolio_sidebar(portfolio_manager)
-    
+
     # Main dashboard area
     if selected_portfolio:
         portfolio_stocks = portfolio_manager.get_portfolio_stocks(selected_portfolio)
-        
+
         if portfolio_stocks:
             # Determine market for data fetching
             market_type = portfolio_manager.get_market_from_portfolio_name(selected_portfolio)
-            
+
             # Create portfolio dataframe
             with st.spinner("Fetching real-time stock data..."):
                 # Show data source status
                 has_twelve_data = bool(os.getenv("TWELVE_DATA_API_KEY"))
                 has_alpha_vantage = bool(os.getenv("ALPHA_VANTAGE_API_KEY"))
-                
+
                 if has_twelve_data or has_alpha_vantage:
                     data_source_info = "Using "
                     if has_twelve_data:
@@ -78,20 +78,20 @@ def main():
                     data_source_info += " APIs"
                 else:
                     data_source_info = "Using Yahoo Finance (may be rate limited)"
-                
+
                 # Show data source and last update time
                 current_time = datetime.now().strftime("%H:%M:%S")
                 st.info(f"📊 {data_source_info} | Last updated: {current_time}")
-                
+
                 # Use progressive loading for large portfolios
                 num_stocks = len(portfolio_stocks)
                 if num_stocks > 8:
                     st.warning(f"⚠️ Large portfolio detected ({num_stocks} stocks). Using progressive loading...")
-                
+
                 # Fetch stock data
                 stock_data = {}
                 progress_bar = st.progress(0)
-                
+
                 for i, ticker in enumerate(portfolio_stocks.keys()):
                     try:
                         data = fetch_stock_data(ticker, market_type)
@@ -99,33 +99,33 @@ def main():
                             stock_data[ticker] = data
                     except Exception as e:
                         st.error(f"Error fetching data for {ticker}: {e}")
-                    
+
                     progress_bar.progress((i + 1) / len(portfolio_stocks))
-                
+
                 progress_bar.empty()
-                
+
                 # Create portfolio dataframe
                 df = create_portfolio_dataframe(portfolio_stocks, stock_data)
-                
+
                 if not df.empty:
                     # Calculate portfolio metrics
                     portfolio_data = df.to_dict('records')
                     metrics = calculate_portfolio_metrics(portfolio_data)
-                    
+
                     # Display portfolio metrics
                     create_portfolio_metrics(metrics)
-                    
+
                     # Display portfolio table
                     create_portfolio_table(df)
-                    
+
                     # Display charts
                     create_portfolio_charts(portfolio_data, metrics)
-                    
+
                     # Display portfolio summary
                     st.subheader("📋 Portfolio Summary")
                     summary = generate_portfolio_summary(portfolio_data, metrics)
                     st.markdown(summary)
-                    
+
                     # Risk analysis
                     risk_metrics = calculate_risk_metrics(portfolio_data)
                     if risk_metrics:
@@ -137,7 +137,7 @@ def main():
                             st.metric("Volatility", f"{risk_metrics.get('volatility', 0):.2f}%")
                         with col3:
                             st.metric("Mean Return", f"{risk_metrics.get('mean_return', 0):.2f}%")
-                    
+
                     # Sector diversification
                     sectors = metrics.get("sectors", {})
                     if sectors:
