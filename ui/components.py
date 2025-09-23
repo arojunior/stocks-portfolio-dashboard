@@ -80,14 +80,24 @@ def create_portfolio_table(df: pd.DataFrame):
     """Create the portfolio table display"""
     st.subheader("📊 Portfolio Holdings")
 
-    # Style the dataframe
-    styled_df = df.style.format({
-        'Gain/Loss %': '{:.2f}%',
-        'Daily Change': '{:.2f}%',
-        'Dividend Yield': '{:.2f}%'
-    })
+    # Style the dataframe with safe formatting
+    format_dict = {}
+    
+    # Only apply formatting to columns that exist and are numeric
+    if 'Gain/Loss %' in df.columns:
+        format_dict['Gain/Loss %'] = '{:.2f}%'
+    if 'Daily Change' in df.columns:
+        format_dict['Daily Change'] = '{:.2f}%'
+    if 'Dividend Yield' in df.columns:
+        format_dict['Dividend Yield'] = '{:.2f}%'
+    
+    # Apply formatting only if we have columns to format
+    if format_dict:
+        styled_df = df.style.format(format_dict)
+    else:
+        styled_df = df
 
-    st.dataframe(styled_df, use_container_width=True, height=400)
+    st.dataframe(styled_df, width='stretch', height=400)
 
     # Download button
     csv = df.to_csv(index=False)
@@ -155,7 +165,7 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
                     names=sector_counts.index,
                     title="Portfolio by Sector"
                 )
-                st.plotly_chart(fig_sector, use_container_width=True)
+                st.plotly_chart(fig_sector, width='stretch')
 
             with col2:
                 # Value by sector
@@ -166,7 +176,7 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
                     orientation='h',
                     title="Portfolio Value by Sector"
                 )
-                st.plotly_chart(fig_value, use_container_width=True)
+                st.plotly_chart(fig_value, width='stretch')
 
         # Performance chart
         if len(portfolio_data) > 1:
@@ -187,7 +197,7 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
                 xaxis_tickangle=-45,
                 showlegend=False
             )
-            st.plotly_chart(fig_performance, use_container_width=True)
+            st.plotly_chart(fig_performance, width='stretch')
 
         # Dividend analysis
         dividend_stocks = df[df['dividend_yield'] > 0]
@@ -204,7 +214,7 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
                     y='dividend_yield',
                     title="Dividend Yield by Stock"
                 )
-                st.plotly_chart(fig_dividend, use_container_width=True)
+                st.plotly_chart(fig_dividend, width='stretch')
 
             with col2:
                 # Annual dividend income by stock
@@ -214,7 +224,7 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
                     y='annual_dividend',
                     title="Annual Dividend Income by Stock"
                 )
-                st.plotly_chart(fig_income, use_container_width=True)
+                st.plotly_chart(fig_income, width='stretch')
 
 
 def create_risk_analysis(risk_metrics: Dict):
@@ -269,4 +279,4 @@ def create_sector_analysis(sectors: Dict):
         for sector, data in sectors.items()
     ])
 
-    st.dataframe(sector_df, use_container_width=True)
+    st.dataframe(sector_df, width='stretch')

@@ -463,7 +463,7 @@ def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
     try:
         # Get API key from environment
         api_key = os.getenv("BRAPI_API_KEY")
-        
+
         # Remove .SA suffix for BRAPI
         clean_ticker = ticker.replace(".SA", "")
 
