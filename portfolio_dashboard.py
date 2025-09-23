@@ -251,11 +251,101 @@ def get_sector_info(ticker: str, market: str, info: Dict) -> str:
     return "Unknown"
 
 
+def get_dividend_yield_from_yfinance(ticker: str, market: str) -> float:
+    """Try to get dividend yield directly from yfinance with multiple approaches"""
+    try:
+        # Format ticker for market
+        if market == "Brazilian" and not ticker.endswith(".SA"):
+            ticker_symbol = f"{ticker}.SA"
+        else:
+            ticker_symbol = ticker
+
+        with SuppressYFinanceOutput():
+            stock = yf.Ticker(ticker_symbol)
+
+            # Try different methods to get dividend data
+            try:
+                # Method 1: Try to get from stock.info
+                info = stock.info
+                dividend_fields = ["dividendYield", "trailingAnnualDividendYield", "forwardDividendYield"]
+
+                for field in dividend_fields:
+                    value = info.get(field, 0)
+                    if value and value > 0:
+                        return value * 100 if value < 1 else value
+
+            except:
+                pass
+
+            try:
+                # Method 2: Try to calculate from dividends history
+                dividends = stock.dividends
+                if not dividends.empty:
+                    # Get the last 4 quarters of dividends
+                    recent_dividends = dividends.tail(4)
+                    if len(recent_dividends) > 0:
+                        annual_dividend = recent_dividends.sum()
+                        # Get current price
+                        hist = stock.history(period="1d")
+                        if not hist.empty:
+                            current_price = hist["Close"].iloc[-1]
+                            if current_price > 0:
+                                dividend_yield = (annual_dividend / current_price) * 100
+                                return dividend_yield
+            except:
+                pass
+
+    except:
+        pass
+
+    return 0.0
+
+
 def get_dividend_yield(ticker: str, market: str, info: Dict) -> float:
-    """Get dividend yield for a stock - prioritize static data due to API rate limiting"""
+    """Get dividend yield for a stock - prioritize live data over static data"""
     ticker_clean = ticker.replace(".SA", "").upper()
 
-    # Static dividend yields for Brazilian stocks (more reliable than rate-limited APIs)
+    # First, try to get live dividend data from API response
+    dividend_fields = [
+        "dividendYield",
+        "trailingAnnualDividendYield",
+        "forwardDividendYield",
+        "dividendRate",
+        "yield",
+        "dividend_yield",
+        "yieldPercent",
+        "dividend_yield_percent",
+        "dividend_yield_percentage",
+        "yield_percent",
+        "yield_percentage",
+        "dividend_yield_annual",
+        "annual_dividend_yield",
+        "dividend_yield_rate",
+        "yield_rate",
+        "dividend_percent",
+        "dividend_percentage",
+        "dividend_yield_pct",
+        "yield_pct",
+        "dividend_yield_ttm",
+        "ttm_dividend_yield",
+        "trailing_dividend_yield",
+        "forward_dividend_yield",
+        "dividend_yield_forward",
+        "dividend_yield_trailing"
+    ]
+
+    for field in dividend_fields:
+        value = info.get(field, 0)
+        if value and value > 0:
+            # Convert to percentage if it's a decimal (0.05 -> 5.0)
+            return value * 100 if value < 1 else value
+
+    # If no live data from API response, try direct yfinance approach
+    yfinance_yield = get_dividend_yield_from_yfinance(ticker, market)
+    if yfinance_yield > 0:
+        return yfinance_yield
+
+    # If no live data available, fallback to static data for Brazilian stocks
     if market == "Brazilian":
         known_dividend_yields = {
             "ITUB4": 8.5, "ITUB3": 8.5,  # Itaú
@@ -283,22 +373,6 @@ def get_dividend_yield(ticker: str, market: str, info: Dict) -> float:
             "PRIO3": 0.0,  # PetroRio - might not pay dividends
         }
         return known_dividend_yields.get(ticker_clean, 0.0)
-
-    # For US stocks, try to get from API data first, then fallback to static
-    if market == "US":
-        dividend_fields = [
-            "dividendYield",
-            "trailingAnnualDividendYield",
-            "forwardDividendYield",
-            "dividendRate",
-            "yield"
-        ]
-
-        for field in dividend_fields:
-            value = info.get(field, 0)
-            if value and value > 0:
-                # Convert to percentage if it's a decimal (0.05 -> 5.0)
-                return value * 100 if value < 1 else value
 
     return 0.0
 
@@ -337,10 +411,21 @@ def fetch_enhanced_stock_data(
             hist = stock.history(period=period, interval="1d")
 
             # Get additional stock info for sector and dividend data
+            info = {}
             try:
                 info = stock.info
-            except:
-                info = {}
+            except Exception as e:
+                # If rate limited or other error, try to get basic info
+                try:
+                    # Try to get just the basic info without the full details
+                    info = {
+                        "sector": "Unknown",
+                        "dividendYield": None,
+                        "trailingAnnualDividendYield": None,
+                        "forwardDividendYield": None
+                    }
+                except:
+                    info = {}
 
         if hist.empty:
             # If no historical data, return None silently (don't log error)
