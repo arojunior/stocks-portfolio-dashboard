@@ -148,9 +148,11 @@ source venv/bin/activate  # macOS/Linux
 # or
 venv\Scripts\activate     # Windows
 
-# Then run the dashboard
-streamlit run portfolio_dashboard.py
+# Then run the dashboard (NEW MODULAR STRUCTURE)
+streamlit run app/main.py
 ```
+
+> **📁 Project Structure**: The application has been refactored into a clean, modular structure. See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for details.
 
 ### Getting Started
 
@@ -194,15 +196,40 @@ streamlit run portfolio_dashboard.py
 ## File Structure
 
 ```
-portfolio_dashboard.py          # Main dashboard application
-portfolios.json                # Your portfolio data (auto-created)
-requirements.txt               # Python dependencies
-README.md                      # This documentation
-SETUP.md                       # Detailed setup instructions
-DEVELOPMENT_HISTORY.md         # Development timeline and changes
-.env                          # API keys (create this file)
-.gitignore                    # Git ignore patterns
+stocks-portfolio-dashboard/
+├── app/                       # Main application layer
+│   ├── main.py               # Main Streamlit application
+│   ├── config.py             # Configuration and constants
+│   └── utils.py              # Utility functions
+├── core/                     # Core business logic
+│   ├── portfolio_manager.py  # Portfolio management
+│   ├── data_fetcher.py       # Data fetching functions
+│   └── analytics.py          # Portfolio analytics
+├── ui/                       # User interface components
+│   ├── components.py         # Reusable UI components
+│   └── charts.py             # Chart creation functions
+├── data/                     # Data layer
+│   └── apis/                 # API-specific modules
+│       ├── yahoo_finance.py  # Yahoo Finance API
+│       ├── twelve_data.py    # Twelve Data API
+│       ├── alpha_vantage.py  # Alpha Vantage API
+│       └── brapi.py          # BRAPI for Brazilian stocks
+├── ai/                       # AI integration
+│   ├── ollama_client.py      # Ollama AI client
+│   └── gemini_client.py      # Google Gemini client
+├── tests/                    # Test files
+│   └── test_portfolio.py     # Portfolio tests
+├── portfolios.json           # Your portfolio data (auto-created)
+├── requirements.txt          # Python dependencies
+├── README.md                 # This documentation
+├── SETUP.md                  # Detailed setup instructions
+├── DEVELOPMENT_HISTORY.md     # Development timeline and changes
+├── PROJECT_STRUCTURE.md      # Project structure documentation
+├── .env                      # API keys (create this file)
+└── .gitignore                # Git ignore patterns
 ```
+
+> **📁 Modular Design**: The project has been refactored from a single 2,739-line file into a clean, organized structure. Each module has a specific responsibility, making the codebase much more maintainable and scalable.
 
 ## Portfolio Data Format
 
@@ -281,7 +308,7 @@ Your portfolio data is stored in `portfolios.json` with the following structure:
 
 4. **Code changes not showing**:
    - Run the cache clearing utility: `python3 clear_cache.py`
-   - Restart the Streamlit app: `streamlit run portfolio_dashboard.py`
+   - Restart the Streamlit app: `streamlit run app/main.py`
    - Clear browser cache if issues persist
 
 ### Error Messages
