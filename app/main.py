@@ -50,6 +50,19 @@ def main():
     st.markdown("*Replace your Google Spreadsheet with real-time portfolio tracking*")
     st.markdown("---")
 
+    # Cache control section
+    with st.sidebar:
+        st.subheader("🔄 Data Refresh")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Refresh Data", help="Clear cache and fetch fresh data"):
+                st.cache_data.clear()
+                st.success("Cache cleared! Data will be refreshed.")
+                st.rerun()
+        with col2:
+            if st.button("ℹ️ Cache Info", help="Show cache information"):
+                st.info("Data is cached for 30 minutes to optimize API usage.")
+
     # Create sidebar
     selected_portfolio = create_portfolio_sidebar(portfolio_manager)
 

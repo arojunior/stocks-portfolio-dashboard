@@ -4,10 +4,12 @@ Handles portfolio calculations, metrics, and analysis
 """
 
 import pandas as pd
+import streamlit as st
 from typing import Dict, List, Optional
 from datetime import datetime
 
 
+@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
 def calculate_portfolio_metrics(portfolio_data: List[Dict]) -> Dict:
     """Calculate comprehensive portfolio metrics"""
     if not portfolio_data:
@@ -56,6 +58,7 @@ def calculate_portfolio_metrics(portfolio_data: List[Dict]) -> Dict:
     }
 
 
+@st.cache_data(ttl=300, show_spinner=False)  # Cache for 5 minutes
 def create_portfolio_dataframe(portfolio_stocks: Dict, stock_data: Dict) -> pd.DataFrame:
     """Create a comprehensive portfolio DataFrame"""
     portfolio_data = []

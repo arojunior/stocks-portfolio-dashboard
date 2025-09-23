@@ -82,7 +82,7 @@ def create_portfolio_table(df: pd.DataFrame):
 
     # Style the dataframe with safe formatting
     format_dict = {}
-    
+
     # Only apply formatting to columns that exist and are numeric
     if 'Gain/Loss %' in df.columns:
         format_dict['Gain/Loss %'] = '{:.2f}%'
@@ -90,7 +90,7 @@ def create_portfolio_table(df: pd.DataFrame):
         format_dict['Daily Change'] = '{:.2f}%'
     if 'Dividend Yield' in df.columns:
         format_dict['Dividend Yield'] = '{:.2f}%'
-    
+
     # Apply formatting only if we have columns to format
     if format_dict:
         styled_df = df.style.format(format_dict)

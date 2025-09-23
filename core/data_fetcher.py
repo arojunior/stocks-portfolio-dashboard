@@ -9,6 +9,7 @@ import os
 import time
 import random
 import sys
+import streamlit as st
 from io import StringIO
 from contextlib import redirect_stderr
 from datetime import datetime, timedelta
@@ -242,6 +243,9 @@ def fetch_enhanced_stock_data(
         return None
 
 
+@st.cache_data(
+    ttl=1800, show_spinner=False
+)  # Cache for 30 minutes to optimize free tier usage
 def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     """Fetch real-time stock data with smart fallback strategy"""
     import os
@@ -280,6 +284,7 @@ def fetch_stock_data(ticker: str, market: str = "US") -> Optional[Dict]:
     return None
 
 
+@st.cache_data(ttl=1800, show_spinner=False)  # Cache for 30 minutes
 def fetch_enhanced_stock_data(
     ticker: str, market: str = "US", period: str = "1mo"
 ) -> Optional[Dict]:
@@ -352,6 +357,7 @@ def fetch_enhanced_stock_data(
         return None
 
 
+@st.cache_data(ttl=1800, show_spinner=False)  # Cache for 30 minutes
 def fetch_from_yahoo_finance(ticker: str, market: str = "US") -> Optional[Dict]:
     """Fallback: Simple stock data from Yahoo Finance"""
     enhanced_data = fetch_enhanced_stock_data(ticker, market, period="5d")
@@ -455,6 +461,7 @@ def fetch_from_alpha_vantage(ticker: str, market: str = "US") -> Optional[Dict]:
         return None
 
 
+@st.cache_data(ttl=1800, show_spinner=False)  # Cache for 30 minutes
 def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
     """Fetch Brazilian stock data from BRAPI"""
     if market != "Brazilian":
