@@ -211,7 +211,7 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
                 fig_income = px.bar(
                     dividend_stocks,
                     x='Ticker',
-                    y='Annual Dividend',
+                    y='_annual_dividend',
                     title="Annual Dividend Income by Stock"
                 )
                 st.plotly_chart(fig_income, width='stretch')
