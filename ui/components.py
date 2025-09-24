@@ -173,14 +173,14 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
             st.subheader("📈 Stock Performance")
 
             # Sort by gain/loss percentage
-            df_sorted = df.sort_values('gain_loss_percent', ascending=True)
+            df_sorted = df.sort_values('_gain_loss_percent', ascending=True)
 
             fig_performance = px.bar(
                 df_sorted,
                 x='Ticker',
-                y='gain_loss_percent',
+                y='_gain_loss_percent',
                 title="Stock Performance (Gain/Loss %)",
-                color='gain_loss_percent',
+                color='_gain_loss_percent',
                 color_continuous_scale=['red', 'yellow', 'green']
             )
             fig_performance.update_layout(
