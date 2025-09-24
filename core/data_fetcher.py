@@ -288,19 +288,19 @@ def fetch_stock_data(ticker: str, market: str = "US", force_refresh: bool = Fals
     """Fetch stock data with smart caching - shows cached data immediately, refreshes in background"""
     import time
     import threading
-    
+
     # First, try to get cached data immediately
     cached_data = fetch_stock_data_cached(ticker, market)
-    
+
     if cached_data and not force_refresh:
         # Show cached data immediately
         return cached_data
-    
+
     # If no cached data or force refresh, fetch fresh data
     if force_refresh:
         # Clear cache for this specific ticker
         fetch_stock_data_cached.clear()
-    
+
     # Fetch fresh data (this will be cached for future use)
     fresh_data = fetch_stock_data_cached(ticker, market)
     return fresh_data
