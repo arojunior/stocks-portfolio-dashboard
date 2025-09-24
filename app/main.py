@@ -90,7 +90,8 @@ def main():
     st.sidebar.markdown("---")
     if st.sidebar.button("🔄 Refresh Now", help="Manually refresh stock data"):
         st.cache_data.clear()
-        st.sidebar.success("✅ Cache cleared! Data will be refreshed.")
+        st.session_state['force_background_refresh'] = True
+        st.sidebar.success("✅ Cache cleared! Data will be refreshed in background.")
         st.rerun()
 
     # Create sidebar
@@ -104,8 +105,46 @@ def main():
             # Determine market for data fetching
             market_type = portfolio_manager.get_market_from_portfolio_name(selected_portfolio)
 
-            # Create portfolio dataframe
-            with st.spinner("Fetching real-time stock data..."):
+            # Create portfolio dataframe with smart caching
+            # First, try to get cached data immediately
+            cached_stock_data = {}
+            fresh_data_needed = []
+            
+            for ticker in portfolio_stocks.keys():
+                # Try to get cached data first (no spinner, immediate)
+                data = fetch_stock_data(ticker, market_type, force_refresh=False)
+                if data:
+                    cached_stock_data[ticker] = data
+                else:
+                    fresh_data_needed.append(ticker)
+            
+            if cached_stock_data:
+                st.success("✅ Showing cached data")
+                # Show background refresh indicator
+                refresh_placeholder = st.empty()
+                with refresh_placeholder.container():
+                    st.info("🔄 Refreshing data in background...")
+                
+                # Use cached data for immediate display
+                stock_data = cached_stock_data.copy()
+                
+                # Fetch fresh data in background for missing or all stocks
+                if fresh_data_needed or st.session_state.get('force_background_refresh', False):
+                    for ticker in (fresh_data_needed if fresh_data_needed else portfolio_stocks.keys()):
+                        try:
+                            fresh_data = fetch_stock_data(ticker, market_type, force_refresh=True)
+                            if fresh_data:
+                                stock_data[ticker] = fresh_data
+                        except Exception as e:
+                            st.warning(f"Background refresh failed for {ticker}: {e}")
+                    
+                    # Clear the refresh indicator
+                    refresh_placeholder.empty()
+                    st.success("✅ Data refreshed in background!")
+                    st.session_state['force_background_refresh'] = False
+            else:
+                # No cached data, show spinner for initial load
+                with st.spinner("Fetching real-time stock data..."):
                 # Show data source status
                 has_twelve_data = bool(os.getenv("TWELVE_DATA_API_KEY"))
                 has_alpha_vantage = bool(os.getenv("ALPHA_VANTAGE_API_KEY"))
