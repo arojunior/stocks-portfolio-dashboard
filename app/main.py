@@ -142,6 +142,54 @@ def main():
                     refresh_placeholder.empty()
                     st.success("✅ Data refreshed in background!")
                     st.session_state['force_background_refresh'] = False
+
+                # Create portfolio dataframe with cached data
+                df = create_portfolio_dataframe(portfolio_stocks, stock_data)
+                
+                # Display portfolio content with cached data
+                if not df.empty:
+                    # Calculate portfolio metrics
+                    portfolio_data = df.to_dict('records')
+                    metrics = calculate_portfolio_metrics(portfolio_data)
+
+                    # Display portfolio metrics
+                    create_portfolio_metrics(metrics)
+
+                    # Display portfolio table
+                    create_portfolio_table(df)
+
+                    # Display charts
+                    create_portfolio_charts(portfolio_data, metrics)
+
+                    # Display portfolio summary
+                    st.subheader("📋 Portfolio Summary")
+                    summary = generate_portfolio_summary(portfolio_data, metrics)
+                    st.markdown(summary)
+
+                    # Risk analysis
+                    risk_metrics = calculate_risk_metrics(portfolio_data)
+                    if risk_metrics:
+                        st.subheader("⚠️ Risk Analysis")
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Risk Level", risk_metrics.get("risk_level", "Unknown"))
+                        with col2:
+                            st.metric("Volatility", f"{risk_metrics.get('volatility', 0):.2f}%")
+                        with col3:
+                            st.metric("Mean Return", f"{risk_metrics.get('mean_return', 0):.2f}%")
+
+                    # Sector diversification
+                    sectors = metrics.get("sectors", {})
+                    if sectors:
+                        diversification = calculate_sector_diversification(sectors)
+                        st.subheader("🏢 Sector Diversification")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Diversification Score", f"{diversification.get('diversification_score', 0):.0f}/100")
+                        with col2:
+                            st.metric("Concentration Risk", diversification.get("concentration_risk", "Unknown"))
+                else:
+                    st.error("No data available for portfolio stocks")
             else:
                 # No cached data, show spinner for initial load
                 with st.spinner("Fetching real-time stock data..."):
