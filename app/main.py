@@ -110,6 +110,9 @@ def main():
             cached_stock_data = {}
             fresh_data_needed = []
 
+            # Show immediate status
+            st.info("🔄 Loading portfolio data...")
+
             for ticker in portfolio_stocks.keys():
                 # Try to get cached data first (no spinner, immediate)
                 data = fetch_stock_data(ticker, market_type, force_refresh=False)
@@ -145,7 +148,7 @@ def main():
 
                 # Create portfolio dataframe with cached data
                 df = create_portfolio_dataframe(portfolio_stocks, stock_data)
-
+                
                 # Display portfolio content with cached data
                 if not df.empty:
                     # Calculate portfolio metrics
