@@ -13,6 +13,11 @@ import streamlit as st
 from io import StringIO
 from contextlib import redirect_stderr
 from datetime import datetime, timedelta
+
+# Simple in-memory cache
+_cache = {}
+_cache_timestamps = {}
+CACHE_TTL = 1800  # 30 minutes
 from typing import Dict, List, Optional
 
 
@@ -244,7 +249,7 @@ def fetch_enhanced_stock_data(
 
 
 @st.cache_data(
-    ttl=1800, show_spinner=False
+    ttl=1800, show_spinner=False, max_entries=1000
 )  # Cache for 30 minutes to optimize free tier usage
 def fetch_stock_data_cached(ticker: str, market: str = "US") -> Optional[Dict]:
     """Fetch real-time stock data with smart fallback strategy"""
@@ -284,25 +289,48 @@ def fetch_stock_data_cached(ticker: str, market: str = "US") -> Optional[Dict]:
     return None
 
 
+def _is_cache_valid(cache_key: str) -> bool:
+    """Check if cached data is still valid"""
+    if cache_key not in _cache or cache_key not in _cache_timestamps:
+        return False
+    
+    age = time.time() - _cache_timestamps[cache_key]
+    return age < CACHE_TTL
+
+def _get_from_cache(cache_key: str) -> Optional[Dict]:
+    """Get data from cache if valid"""
+    if _is_cache_valid(cache_key):
+        return _cache[cache_key]
+    return None
+
+def _set_cache(cache_key: str, data: Dict):
+    """Set data in cache"""
+    _cache[cache_key] = data
+    _cache_timestamps[cache_key] = time.time()
+
 def fetch_stock_data(ticker: str, market: str = "US", force_refresh: bool = False) -> Optional[Dict]:
     """Fetch stock data with smart caching - shows cached data immediately, refreshes in background"""
-    import time
-    import threading
-
-    # First, try to get cached data immediately
-    cached_data = fetch_stock_data_cached(ticker, market)
-
-    if cached_data and not force_refresh:
-        # Show cached data immediately
-        return cached_data
-
-    # If no cached data or force refresh, fetch fresh data
+    cache_key = f"{ticker}_{market}"
+    
+    # If force refresh, clear this ticker's cache
     if force_refresh:
-        # Clear cache for this specific ticker
-        fetch_stock_data_cached.clear()
-
-    # Fetch fresh data (this will be cached for future use)
+        if cache_key in _cache:
+            del _cache[cache_key]
+        if cache_key in _cache_timestamps:
+            del _cache_timestamps[cache_key]
+    
+    # Try to get from simple cache first (instant if cached)
+    cached_data = _get_from_cache(cache_key)
+    if cached_data and not force_refresh:
+        return cached_data
+    
+    # If no cached data or force refresh, fetch fresh data
     fresh_data = fetch_stock_data_cached(ticker, market)
+    
+    # Store in simple cache for instant access next time
+    if fresh_data:
+        _set_cache(cache_key, fresh_data)
+    
     return fresh_data
 
 
