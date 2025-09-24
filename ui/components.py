@@ -80,13 +80,17 @@ def create_portfolio_table(df: pd.DataFrame):
     """Create the portfolio table display"""
     st.subheader("📊 Portfolio Holdings")
 
+    # Filter out internal calculation columns (those starting with _)
+    display_columns = [col for col in df.columns if not col.startswith('_')]
+    display_df = df[display_columns]
+
     # Style the dataframe - disable formatting to avoid errors
-    styled_df = df
+    styled_df = display_df
 
     st.dataframe(styled_df, width='stretch', height=400)
 
     # Download button
-    csv = df.to_csv(index=False)
+    csv = display_df.to_csv(index=False)
     st.download_button(
         label="📥 Download Portfolio Data",
         data=csv,

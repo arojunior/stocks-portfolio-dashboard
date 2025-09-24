@@ -15,14 +15,14 @@ def calculate_portfolio_metrics(portfolio_data: List[Dict]) -> Dict:
     if not portfolio_data:
         return {}
 
-    total_value = sum(stock.get("total_value", 0) for stock in portfolio_data)
-    total_cost = sum(stock.get("total_cost", 0) for stock in portfolio_data)
+    total_value = sum(stock.get("_total_value", 0) for stock in portfolio_data)
+    total_cost = sum(stock.get("_total_cost", 0) for stock in portfolio_data)
     total_gain_loss = total_value - total_cost
     total_gain_loss_percent = (total_gain_loss / total_cost * 100) if total_cost > 0 else 0
 
     # Best and worst performers
-    performers = [(stock.get("ticker", ""), stock.get("gain_loss_percent", 0))
-                 for stock in portfolio_data if stock.get("gain_loss_percent") is not None]
+    performers = [(stock.get("Ticker", ""), stock.get("_gain_loss_percent", 0))
+                 for stock in portfolio_data if stock.get("_gain_loss_percent") is not None]
 
     best_performer = max(performers, key=lambda x: x[1]) if performers else ("", 0)
     worst_performer = min(performers, key=lambda x: x[1]) if performers else ("", 0)
@@ -30,18 +30,18 @@ def calculate_portfolio_metrics(portfolio_data: List[Dict]) -> Dict:
     # Sector analysis
     sectors = {}
     for stock in portfolio_data:
-        sector = stock.get("sector", "Unknown")
+        sector = stock.get("_sector", "Unknown")
         if sector not in sectors:
             sectors[sector] = {"count": 0, "value": 0, "percentage": 0}
         sectors[sector]["count"] += 1
-        sectors[sector]["value"] += stock.get("total_value", 0)
+        sectors[sector]["value"] += stock.get("_total_value", 0)
 
     # Calculate sector percentages
     for sector in sectors:
         sectors[sector]["percentage"] = (sectors[sector]["value"] / total_value * 100) if total_value > 0 else 0
 
     # Dividend analysis
-    total_annual_dividends = sum(stock.get("annual_dividend", 0) for stock in portfolio_data)
+    total_annual_dividends = sum(stock.get("_annual_dividend", 0) for stock in portfolio_data)
     portfolio_dividend_yield = (total_annual_dividends / total_value * 100) if total_value > 0 else 0
 
     return {
@@ -83,25 +83,32 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, stock_data: Dict) -> pd.D
             # Calculate annual dividend income
             annual_dividend = (dividend_yield / 100) * total_value if dividend_yield > 0 else 0
 
+            # Determine currency symbol based on ticker
+            if ticker.endswith('.SA') or any(ticker.endswith(suffix) for suffix in ['3', '4', '5', '6', '11']):
+                currency_symbol = "R$"
+            else:
+                currency_symbol = "$"
+
             portfolio_data.append({
                 "Ticker": ticker,
                 "Quantity": quantity,
-                "Avg Price": f"R$ {avg_price:.2f}" if "R$" in str(avg_price) else f"$ {avg_price:.2f}",
-                "Current Price": f"R$ {current_price:.2f}" if "R$" in str(current_price) else f"$ {current_price:.2f}",
-                "Total Cost": f"R$ {total_cost:.2f}" if "R$" in str(total_cost) else f"$ {total_cost:.2f}",
-                "Total Value": f"R$ {total_value:.2f}" if "R$" in str(total_value) else f"$ {total_value:.2f}",
-                "Gain/Loss": f"R$ {gain_loss:.2f}" if "R$" in str(gain_loss) else f"$ {gain_loss:.2f}",
+                "Avg Price": f"{currency_symbol} {avg_price:.2f}",
+                "Current Price": f"{currency_symbol} {current_price:.2f}",
+                "Total Cost": f"{currency_symbol} {total_cost:.2f}",
+                "Total Value": f"{currency_symbol} {total_value:.2f}",
+                "Gain/Loss": f"{currency_symbol} {gain_loss:.2f}",
                 "Gain/Loss %": f"{gain_loss_percent:.2f}%",
                 "Daily Change": f"{change_percent:.2f}%",
                 "Sector": sector,
                 "Dividend Yield": f"{dividend_yield:.2f}%",
-                "Annual Dividend": f"R$ {annual_dividend:.2f}" if "R$" in str(annual_dividend) else f"$ {annual_dividend:.2f}",
-                "total_value": total_value,
-                "total_cost": total_cost,
-                "gain_loss_percent": gain_loss_percent,
-                "annual_dividend": annual_dividend,
-                "sector": sector,
-                "dividend_yield": dividend_yield
+                "Annual Dividend": f"{currency_symbol} {annual_dividend:.2f}",
+                # Keep raw values for internal calculations (hidden from display)
+                "_total_value": total_value,
+                "_total_cost": total_cost,
+                "_gain_loss_percent": gain_loss_percent,
+                "_annual_dividend": annual_dividend,
+                "_sector": sector,
+                "_dividend_yield": dividend_yield
             })
 
     return pd.DataFrame(portfolio_data)
