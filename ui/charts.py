@@ -81,7 +81,7 @@ def create_dividend_analysis_chart(portfolio_data: List[Dict]) -> go.Figure:
     df = pd.DataFrame(portfolio_data)
 
     # Filter stocks with dividends
-    dividend_stocks = df[df['dividend_yield'] > 0]
+    dividend_stocks = df[df['Dividend Yield'].str.replace('%', '').astype(float) > 0]
 
     if dividend_stocks.empty:
         return go.Figure()
@@ -89,9 +89,9 @@ def create_dividend_analysis_chart(portfolio_data: List[Dict]) -> go.Figure:
     fig = go.Figure(data=[
         go.Bar(
             x=dividend_stocks['Ticker'],
-            y=dividend_stocks['dividend_yield'],
+            y=dividend_stocks['Dividend Yield'].str.replace('%', '').astype(float),
             marker_color='lightblue',
-            text=[f"{x:.2f}%" for x in dividend_stocks['dividend_yield']],
+            text=[f"{x:.2f}%" for x in dividend_stocks['Dividend Yield'].str.replace('%', '').astype(float)],
             textposition='auto',
             hovertemplate='<b>%{x}</b><br>Dividend Yield: %{y:.2f}%<extra></extra>'
         )
