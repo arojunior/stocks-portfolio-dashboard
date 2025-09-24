@@ -293,7 +293,7 @@ def _is_cache_valid(cache_key: str) -> bool:
     """Check if cached data is still valid"""
     if cache_key not in _cache or cache_key not in _cache_timestamps:
         return False
-    
+
     age = time.time() - _cache_timestamps[cache_key]
     return age < CACHE_TTL
 
@@ -311,26 +311,26 @@ def _set_cache(cache_key: str, data: Dict):
 def fetch_stock_data(ticker: str, market: str = "US", force_refresh: bool = False) -> Optional[Dict]:
     """Fetch stock data with smart caching - shows cached data immediately, refreshes in background"""
     cache_key = f"{ticker}_{market}"
-    
+
     # If force refresh, clear this ticker's cache
     if force_refresh:
         if cache_key in _cache:
             del _cache[cache_key]
         if cache_key in _cache_timestamps:
             del _cache_timestamps[cache_key]
-    
+
     # Try to get from simple cache first (instant if cached)
     cached_data = _get_from_cache(cache_key)
     if cached_data and not force_refresh:
         return cached_data
-    
+
     # If no cached data or force refresh, fetch fresh data
     fresh_data = fetch_stock_data_cached(ticker, market)
-    
+
     # Store in simple cache for instant access next time
     if fresh_data:
         _set_cache(cache_key, fresh_data)
-    
+
     return fresh_data
 
 
