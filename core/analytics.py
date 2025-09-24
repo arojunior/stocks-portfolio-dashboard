@@ -126,7 +126,7 @@ def calculate_sector_diversification(sectors: Dict) -> Dict:
         concentration_risk = "Low"
 
     # Calculate diversification score (0-100)
-    max_sector_percentage = max(sectors.values()) if sectors else 0
+    max_sector_percentage = max(sector_data.get("percentage", 0) for sector_data in sectors.values()) if sectors else 0
     diversification_score = max(0, 100 - (max_sector_percentage * 2))
 
     return {

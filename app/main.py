@@ -53,9 +53,9 @@ def main():
     # Configurable refresh settings
     st.sidebar.markdown("---")
     st.sidebar.subheader("🔄 Data Refresh")
-    
+
     refresh_enabled = st.sidebar.checkbox("Enable auto-refresh", value=False)
-    
+
     if refresh_enabled:
         refresh_options = {
             "5 minutes": 300,
@@ -64,28 +64,28 @@ def main():
             "30 minutes": 1800,
             "1 hour": 3600,
         }
-        
+
         selected_refresh = st.sidebar.selectbox(
             "Refresh interval",
             options=list(refresh_options.keys()),
             index=2,  # Default to 15 minutes
             help="Choose how often to refresh stock data. Longer intervals preserve API limits.",
         )
-        
+
         refresh_seconds = refresh_options[selected_refresh]
-        
+
         st.sidebar.info(f"📊 Next refresh in {selected_refresh}")
-        
+
         # Show API usage warning for short intervals
         if refresh_seconds < 900:  # Less than 15 minutes
             st.sidebar.warning("⚠️ Short refresh intervals may exhaust API limits quickly")
-        
+
         import time
         time.sleep(refresh_seconds)
         st.rerun()
     else:
         st.sidebar.info("💡 Enable auto-refresh to automatically update stock prices")
-    
+
     # Manual refresh button
     st.sidebar.markdown("---")
     if st.sidebar.button("🔄 Refresh Now", help="Manually refresh stock data"):
