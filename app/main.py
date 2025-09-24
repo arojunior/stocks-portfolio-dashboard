@@ -145,7 +145,7 @@ def main():
 
                 # Create portfolio dataframe with cached data
                 df = create_portfolio_dataframe(portfolio_stocks, stock_data)
-                
+
                 # Display portfolio content with cached data
                 if not df.empty:
                     # Calculate portfolio metrics

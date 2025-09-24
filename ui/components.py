@@ -190,7 +190,7 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
             st.plotly_chart(fig_performance, width='stretch')
 
         # Dividend analysis
-        dividend_stocks = df[df['dividend_yield'] > 0]
+        dividend_stocks = df[df['Dividend Yield'].str.replace('%', '').astype(float) > 0]
         if not dividend_stocks.empty:
             st.subheader("💰 Dividend Analysis")
 
@@ -201,7 +201,7 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
                 fig_dividend = px.bar(
                     dividend_stocks,
                     x='Ticker',
-                    y='dividend_yield',
+                    y='Dividend Yield',
                     title="Dividend Yield by Stock"
                 )
                 st.plotly_chart(fig_dividend, width='stretch')
