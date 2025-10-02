@@ -36,6 +36,8 @@ from app.config import (
     API_KEYS,
     BRAZILIAN_SECTORS,
     US_SECTORS,
+    BRAZILIAN_DIVIDEND_YIELDS,
+    US_DIVIDEND_YIELDS,
     RATE_LIMITS
 )
 
@@ -170,7 +172,15 @@ def get_dividend_yield(ticker: str, market: str, info: Dict) -> float:
         if yfinance_yield > 0:
             return yfinance_yield
 
-    # No static fallback - we want live data only
+    # Fallback to static mappings when live data is unavailable
+    if market == "Brazilian":
+        ticker_clean = ticker.replace(".SA", "").upper()
+        return BRAZILIAN_DIVIDEND_YIELDS.get(ticker_clean, 0.0)
+    
+    if market == "US":
+        ticker_clean = ticker.replace(".SA", "").upper()
+        return US_DIVIDEND_YIELDS.get(ticker_clean, 0.0)
+
     return 0.0
 
 
