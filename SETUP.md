@@ -99,7 +99,10 @@ Create a `.env` file in the project root:
 # Make sure virtual environment is activated
 source venv/bin/activate
 
-# Run the dashboard
+# Run the modular dashboard (recommended)
+streamlit run app/main.py
+
+# Or run the legacy monolithic version
 streamlit run portfolio_dashboard.py
 ```
 
@@ -168,14 +171,37 @@ pip freeze > requirements.txt
 
 ```
 stocks-portfolio-dashboard/
-├── venv/                      # Virtual environment (not committed)
-├── portfolio_dashboard.py     # Main application
-├── requirements.txt          # Python dependencies
-├── portfolios.json           # User data (created at runtime)
-├── .gitignore               # Git ignore rules
-├── README.md                # Project documentation
-├── SETUP.md                 # This setup guide
-└── DEVELOPMENT_HISTORY.md   # Development timeline
+├── app/                      # Main application module
+│   ├── main.py              # Streamlit app entry point (NEW)
+│   └── config.py            # Configuration and constants
+├── core/                     # Core business logic
+│   ├── portfolio_manager.py # Portfolio management
+│   ├── data_fetcher.py      # Stock data fetching
+│   └── analytics.py         # Portfolio analytics
+├── ui/                       # User interface components
+│   ├── components.py        # UI components
+│   └── charts.py            # Chart creation functions
+├── data/                     # Data layer
+│   └── apis/                # API-specific modules
+│       ├── yahoo_finance.py
+│       ├── twelve_data.py
+│       ├── alpha_vantage.py
+│       └── brapi.py
+├── ai/                       # AI integration
+│   ├── ollama_client.py     # Local AI (Ollama)
+│   └── gemini_client.py     # Cloud AI (Google Gemini)
+├── tests/                    # Unit tests
+│   └── test_portfolio.py
+├── venv/                     # Virtual environment (not committed)
+├── portfolios.json          # User data (created at runtime, gitignored)
+├── requirements.txt         # Python dependencies
+├── .env                     # API keys (gitignored)
+├── .gitignore              # Git ignore rules
+├── README.md               # Project documentation
+├── SETUP.md                # This setup guide
+├── PROJECT_STRUCTURE.md    # Modular structure documentation
+├── DEVELOPMENT_HISTORY.md  # Development timeline
+└── portfolio_dashboard.py  # Legacy monolithic file (preserved)
 ```
 
 ## Troubleshooting

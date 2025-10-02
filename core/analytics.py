@@ -72,6 +72,7 @@ def create_portfolio_dataframe(portfolio_stocks: Dict, stock_data: Dict) -> pd.D
             current_price = data.get("current_price", 0)
             change_percent = data.get("change_percent", 0)
             sector = data.get("sector", "Unknown")
+            # print(f"DEBUG: {ticker} sector from data: {sector}")
             dividend_yield = data.get("dividend_yield", 0)
 
             # Calculate position metrics

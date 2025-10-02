@@ -10,6 +10,7 @@ import time
 import random
 import sys
 import streamlit as st
+import pandas as pd
 from io import StringIO
 from contextlib import redirect_stderr
 from datetime import datetime, timedelta
@@ -32,9 +33,9 @@ class SuppressYFinanceOutput:
 from bs4 import BeautifulSoup
 
 from app.config import (
-    BRAZILIAN_SECTORS,
-    BRAZILIAN_DIVIDEND_YIELDS,
     API_KEYS,
+    BRAZILIAN_SECTORS,
+    US_SECTORS,
     RATE_LIMITS
 )
 
@@ -51,16 +52,27 @@ class SuppressYFinanceOutput:
 
 
 def get_sector_info(ticker: str, market: str, info: Dict) -> str:
-    """Get sector information for a stock, with Brazilian stock mapping"""
+    """Get sector information for a stock, with Brazilian and US stock mapping"""
     # First try to get from Yahoo Finance info
     sector = info.get("sector", "")
     if sector and sector != "Unknown":
         return sector
 
-    # For Brazilian stocks, use our mapping
+    # Try to get sector from API data first, then fallback to basic categorization
     if market == "Brazilian":
         ticker_clean = ticker.replace(".SA", "").upper()
+
+        # Special handling for FIIs (Fundos Imobiliários) - these are always Real Estate
+        if ticker_clean.endswith("11") and len(ticker_clean) >= 5:
+            return "Real Estate FII"
+
+        # Use static mapping as fallback
         return BRAZILIAN_SECTORS.get(ticker_clean, "Unknown")
+
+    # For US stocks, use static mapping as fallback
+    if market == "US":
+        ticker_clean = ticker.replace(".SA", "").upper()
+        return US_SECTORS.get(ticker_clean, "Unknown")
 
     return "Unknown"
 
@@ -86,7 +98,9 @@ def get_dividend_yield_from_yfinance(ticker: str, market: str) -> float:
                 for field in dividend_fields:
                     value = info.get(field, 0)
                     if value and value > 0:
-                        return value * 100 if value < 1 else value
+                        result = value * 100 if value < 1 else value
+                        # print(f"DEBUG: Live dividend yield for {ticker} from {field}: {result}%")
+                        return result
 
                 # Method 2: Try to calculate from dividend history
                 try:
@@ -99,6 +113,7 @@ def get_dividend_yield_from_yfinance(ticker: str, market: str) -> float:
                             current_price = info.get("currentPrice", 0)
                             if current_price and current_price > 0:
                                 dividend_yield = (annual_dividend / current_price) * 100
+                                # print(f"DEBUG: Calculated dividend yield for {ticker}: {dividend_yield:.2f}%")
                                 return dividend_yield
                 except:
                     pass
@@ -155,10 +170,7 @@ def get_dividend_yield(ticker: str, market: str, info: Dict) -> float:
         if yfinance_yield > 0:
             return yfinance_yield
 
-    # Fallback to static data for Brazilian stocks only
-    if market == "Brazilian":
-        return BRAZILIAN_DIVIDEND_YIELDS.get(ticker_clean, 0.0)
-
+    # No static fallback - we want live data only
     return 0.0
 
 
@@ -189,7 +201,9 @@ def fetch_enhanced_stock_data(
             # Get additional stock info for sector and dividend data
             try:
                 info = stock.info
-            except:
+                # print(f"DEBUG: Got live data for {ticker}: sector={info.get('sector', 'N/A')}, dividendYield={info.get('dividendYield', 'N/A')}")
+            except Exception as e:
+                # print(f"DEBUG: Failed to get live data for {ticker}: {e}")
                 info = {}
 
             if hist.empty:
@@ -555,3 +569,118 @@ def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
     except Exception as e:
         print(f"Error fetching from BRAPI for {ticker}: {e}")
         return None
+
+
+def fetch_stock_news_alpha_vantage(ticker: str) -> List[Dict]:
+    """Fetch news for a stock using Alpha Vantage API"""
+    try:
+        api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+        if not api_key:
+            return []
+
+        url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={ticker}&apikey={api_key}&limit=5"
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        if "feed" in data and data["feed"]:
+            # Format the news data consistently
+            formatted_news = []
+            for article in data["feed"]:
+                formatted_news.append({
+                    "title": article.get("title", "No title"),
+                    "description": article.get("summary", "No description"),
+                    "url": article.get("url", ""),
+                    "source": article.get("source", "Alpha Vantage"),
+                    "publishedAt": article.get("time_published", ""),
+                    "sentiment": article.get("overall_sentiment_score", 0)
+                })
+            return formatted_news
+        return []
+    except Exception as e:
+        print(f"Error fetching news from Alpha Vantage for {ticker}: {e}")
+        return []
+
+
+def fetch_stock_news_newsapi(ticker: str) -> List[Dict]:
+    """Fetch news for a stock using NewsAPI"""
+    try:
+        api_key = os.getenv("NEWSAPI_API_KEY")
+        if not api_key:
+            return []
+
+        # Search for news about the company
+        url = f"https://newsapi.org/v2/everything?q={ticker}&apiKey={api_key}&pageSize=5"
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        if "articles" in data and data["articles"]:
+            # Format the news data consistently
+            formatted_news = []
+            for article in data["articles"]:
+                formatted_news.append({
+                    "title": article.get("title", "No title"),
+                    "description": article.get("description", "No description"),
+                    "url": article.get("url", ""),
+                    "source": article.get("source", {}).get("name", "NewsAPI"),
+                    "publishedAt": article.get("publishedAt", ""),
+                    "sentiment": 0  # NewsAPI doesn't provide sentiment
+                })
+            return formatted_news
+        return []
+    except Exception as e:
+        print(f"Error fetching news from NewsAPI for {ticker}: {e}")
+        return []
+
+
+def fetch_stock_news_web_scraping(ticker: str) -> List[Dict]:
+    """Fetch news using web scraping (fallback method)"""
+    try:
+        # This is a simplified web scraping approach
+        # In a real implementation, you'd use proper web scraping libraries
+        return []
+    except Exception as e:
+        print(f"Error fetching news via web scraping for {ticker}: {e}")
+        return []
+
+
+def fetch_stock_news_mock_data(ticker: str) -> List[Dict]:
+    """Return mock news data for testing"""
+    return [
+        {
+            "title": f"Latest news about {ticker}",
+            "description": f"Recent developments and analysis for {ticker} stock",
+            "url": f"https://example.com/news/{ticker}",
+            "publishedAt": datetime.now().isoformat(),
+            "source": "Mock News"
+        }
+    ]
+
+
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
+def fetch_portfolio_news(tickers: List[str]) -> List[Dict]:
+    """Fetch news for multiple stocks in a portfolio"""
+    all_news = []
+
+    for ticker in tickers:
+        # Try different news sources
+        news_sources = [
+            fetch_stock_news_alpha_vantage,
+            fetch_stock_news_newsapi,
+            fetch_stock_news_web_scraping,
+            fetch_stock_news_mock_data
+        ]
+
+        for fetch_func in news_sources:
+            try:
+                news = fetch_func(ticker)
+                if news:
+                    all_news.extend(news)
+                    break  # Use first successful source
+            except Exception as e:
+                continue
+
+    # Sort by date and return top 10
+    all_news.sort(key=lambda x: x.get('publishedAt', ''), reverse=True)
+    return all_news[:10]

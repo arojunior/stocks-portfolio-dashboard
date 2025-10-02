@@ -84,6 +84,10 @@ def create_portfolio_table(df: pd.DataFrame):
     display_columns = [col for col in df.columns if not col.startswith('_')]
     display_df = df[display_columns]
 
+    # Debug: Show available columns (remove this after testing)
+    # st.write(f"Available columns: {list(df.columns)}")
+    # st.write(f"Display columns: {display_columns}")
+
     # Style the dataframe - disable formatting to avoid errors
     styled_df = display_df
 
@@ -181,7 +185,8 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
                 y='_gain_loss_percent',
                 title="Stock Performance (Gain/Loss %)",
                 color='_gain_loss_percent',
-                color_continuous_scale=['red', 'yellow', 'green']
+                color_continuous_scale=['red', 'yellow', 'green'],
+                labels={'_gain_loss_percent': 'Gain/Loss %'}
             )
             fig_performance.update_layout(
                 xaxis_tickangle=-45,
@@ -212,7 +217,8 @@ def create_portfolio_charts(portfolio_data: List[Dict], metrics: Dict):
                     dividend_stocks,
                     x='Ticker',
                     y='_annual_dividend',
-                    title="Annual Dividend Income by Stock"
+                    title="Annual Dividend Income by Stock",
+                    labels={'_annual_dividend': 'Annual Dividend Income'}
                 )
                 st.plotly_chart(fig_income, width='stretch')
 
