@@ -139,29 +139,58 @@ def main():
                     with col2:
                         st.metric("Concentration Risk", diversification.get("concentration_risk", "Unknown"))
 
-                # News Section
-                st.subheader("📰 Latest News")
+                # Enhanced News Section
                 try:
-                    from core.data_fetcher import fetch_portfolio_news
-                    news_data = fetch_portfolio_news(list(portfolio_stocks.keys()))
-                    if news_data:
-                        for article in news_data[:5]:  # Show top 5 articles
-                            # Add sentiment indicator
-                            sentiment = article.get('sentiment', 0)
-                            sentiment_emoji = "😊" if sentiment > 0.1 else "😐" if sentiment > -0.1 else "😞"
-
-                            with st.expander(f"{sentiment_emoji} {article.get('title', 'No title')}"):
-                                st.write(f"**Source:** {article.get('source', 'Unknown')}")
-                                st.write(f"**Published:** {article.get('publishedAt', 'Unknown')}")
-                                st.write(f"**Description:** {article.get('description', 'No description')}")
-                                if sentiment != 0:
-                                    st.write(f"**Sentiment:** {sentiment:.2f}")
-                                if article.get('url'):
-                                    st.write(f"**Link:** {article['url']}")
+                    from core.social_fetcher import fetch_enhanced_portfolio_news
+                    from ui.enhanced_news import create_enhanced_news_feed
+                    
+                    # Fetch enhanced news from multiple sources
+                    enhanced_news = fetch_enhanced_portfolio_news(list(portfolio_stocks.keys()))
+                    
+                    if any(enhanced_news.values()):
+                        create_enhanced_news_feed(enhanced_news)
                     else:
-                        st.info("No news available at the moment")
+                        # Fallback to traditional news if enhanced news fails
+                        from core.data_fetcher import fetch_portfolio_news
+                        news_data = fetch_portfolio_news(list(portfolio_stocks.keys()))
+                        if news_data:
+                            st.subheader("📰 Latest News")
+                            for article in news_data[:5]:  # Show top 5 articles
+                                # Add sentiment indicator
+                                sentiment = article.get('sentiment', 0)
+                                sentiment_emoji = "😊" if sentiment > 0.1 else "😐" if sentiment > -0.1 else "😞"
+
+                                with st.expander(f"{sentiment_emoji} {article.get('title', 'No title')}"):
+                                    st.write(f"**Source:** {article.get('source', 'Unknown')}")
+                                    st.write(f"**Published:** {article.get('publishedAt', 'Unknown')}")
+                                    st.write(f"**Description:** {article.get('description', 'No description')}")
+                                    if sentiment != 0:
+                                        st.write(f"**Sentiment:** {sentiment:.2f}")
+                                    if article.get('url'):
+                                        st.write(f"**Link:** {article['url']}")
+                        else:
+                            st.info("No news available at the moment")
                 except Exception as e:
-                    st.warning(f"News fetching error: {e}")
+                    st.warning(f"Enhanced news fetching error: {e}")
+                    # Fallback to basic news
+                    try:
+                        from core.data_fetcher import fetch_portfolio_news
+                        news_data = fetch_portfolio_news(list(portfolio_stocks.keys()))
+                        if news_data:
+                            st.subheader("📰 Latest News")
+                            for article in news_data[:5]:
+                                sentiment = article.get('sentiment', 0)
+                                sentiment_emoji = "😊" if sentiment > 0.1 else "😐" if sentiment > -0.1 else "😞"
+                                with st.expander(f"{sentiment_emoji} {article.get('title', 'No title')}"):
+                                    st.write(f"**Source:** {article.get('source', 'Unknown')}")
+                                    st.write(f"**Published:** {article.get('publishedAt', 'Unknown')}")
+                                    st.write(f"**Description:** {article.get('description', 'No description')}")
+                                    if sentiment != 0:
+                                        st.write(f"**Sentiment:** {sentiment:.2f}")
+                                    if article.get('url'):
+                                        st.write(f"**Link:** {article['url']}")
+                    except Exception as fallback_error:
+                        st.warning(f"News fetching error: {fallback_error}")
 
                 # AI Analysis Section
                 st.subheader("🤖 AI Portfolio Analysis")
