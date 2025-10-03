@@ -176,7 +176,7 @@ def get_dividend_yield(ticker: str, market: str, info: Dict) -> float:
     if market == "Brazilian":
         ticker_clean = ticker.replace(".SA", "").upper()
         return BRAZILIAN_DIVIDEND_YIELDS.get(ticker_clean, 0.0)
-    
+
     if market == "US":
         ticker_clean = ticker.replace(".SA", "").upper()
         return US_DIVIDEND_YIELDS.get(ticker_clean, 0.0)
@@ -586,6 +586,7 @@ def fetch_stock_news_alpha_vantage(ticker: str) -> List[Dict]:
     try:
         api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
         if not api_key:
+            print(f"Alpha Vantage API key not found for {ticker}")
             return []
 
         url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={ticker}&apikey={api_key}&limit=5"
@@ -593,6 +594,11 @@ def fetch_stock_news_alpha_vantage(ticker: str) -> List[Dict]:
         response.raise_for_status()
         data = response.json()
 
+        # Check for rate limiting or API issues
+        if "Information" in data:
+            print(f"Alpha Vantage: {data['Information']}")
+            return []
+        
         if "feed" in data and data["feed"]:
             # Format the news data consistently
             formatted_news = []
@@ -605,7 +611,9 @@ def fetch_stock_news_alpha_vantage(ticker: str) -> List[Dict]:
                     "publishedAt": article.get("time_published", ""),
                     "sentiment": article.get("overall_sentiment_score", 0)
                 })
+            print(f"Alpha Vantage: Found {len(formatted_news)} articles for {ticker}")
             return formatted_news
+        print(f"Alpha Vantage: No articles found for {ticker}")
         return []
     except Exception as e:
         print(f"Error fetching news from Alpha Vantage for {ticker}: {e}")
@@ -615,13 +623,20 @@ def fetch_stock_news_alpha_vantage(ticker: str) -> List[Dict]:
 def fetch_stock_news_newsapi(ticker: str) -> List[Dict]:
     """Fetch news for a stock using NewsAPI"""
     try:
-        api_key = os.getenv("NEWSAPI_API_KEY")
+        api_key = os.getenv("NEWSAPI_KEY")
         if not api_key:
+            print(f"NewsAPI key not found for {ticker}")
             return []
 
         # Search for news about the company
         url = f"https://newsapi.org/v2/everything?q={ticker}&apiKey={api_key}&pageSize=5"
         response = requests.get(url, timeout=10)
+        
+        # Check for API key errors
+        if response.status_code == 401:
+            print(f"NewsAPI: Invalid API key for {ticker}")
+            return []
+        
         response.raise_for_status()
         data = response.json()
 
@@ -637,7 +652,9 @@ def fetch_stock_news_newsapi(ticker: str) -> List[Dict]:
                     "publishedAt": article.get("publishedAt", ""),
                     "sentiment": 0  # NewsAPI doesn't provide sentiment
                 })
+            print(f"NewsAPI: Found {len(formatted_news)} articles for {ticker}")
             return formatted_news
+        print(f"NewsAPI: No articles found for {ticker}")
         return []
     except Exception as e:
         print(f"Error fetching news from NewsAPI for {ticker}: {e}")
@@ -656,16 +673,94 @@ def fetch_stock_news_web_scraping(ticker: str) -> List[Dict]:
 
 
 def fetch_stock_news_mock_data(ticker: str) -> List[Dict]:
-    """Return mock news data for testing"""
-    return [
+    """Return enhanced mock news data for demonstration"""
+    
+    # Brazilian stock company names for more realistic mock data
+    brazilian_companies = {
+        "VAMO3": "Vamos",
+        "SANB11": "Santander Brasil",
+        "EGIE3": "Engie Brasil",
+        "VBBR3": "Vibra Energia",
+        "CSAN3": "Cosan",
+        "ISAE4": "Isaac",
+        "SAPR4": "Sapura",
+        "PRIO3": "PetroRio",
+        "GOAU4": "Metalúrgica Gerdau",
+        "PSSA3": "Porto Seguro",
+        "CPLE6": "Copel",
+        "UNIP6": "Unipar",
+        "VIVT3": "Vivo",
+        "FESA4": "Fesa",
+        "ITSA4": "Itaúsa",
+        "VISC11": "Vinci Shopping Centers",
+        "HGLG11": "CSHG Logística",
+        "HGRU11": "CSHG Renda Urbana",
+        "BTLG11": "BTG Pactual Logística",
+        "KNCR11": "Kinea Renda Imobiliária",
+        "XPLG11": "XP Log",
+        "MXRF11": "Maxi Renda",
+        "RZTR11": "Riza Terrax",
+        "HCTR11": "Hectare CE",
+        "CPTI11": "Capitania Securities II"
+    }
+    
+    # US stock company names
+    us_companies = {
+        "AAPL": "Apple",
+        "MSFT": "Microsoft", 
+        "GOOGL": "Alphabet",
+        "TSLA": "Tesla",
+        "DIS": "Disney",
+        "WBD": "Warner Bros Discovery",
+        "LIT": "Global X Lithium",
+        "TLT": "iShares 20+ Year Treasury Bond",
+        "QQQ": "Invesco QQQ Trust",
+        "SOXX": "iShares Semiconductor",
+        "VNQ": "Vanguard Real Estate",
+        "SGOV": "iShares 0-3 Month Treasury",
+        "BRK.B": "Berkshire Hathaway",
+        "CMCSA": "Comcast",
+        "XLE": "Energy Select Sector SPDR",
+        "XLV": "Health Care Select Sector SPDR",
+        "HDV": "iShares Core High Dividend",
+        "JNJ": "Johnson & Johnson",
+        "LTC": "LTC Properties",
+        "CQQQ": "Invesco China Technology",
+        "APPS": "Digital Turbine"
+    }
+    
+    # Get company name
+    company_name = brazilian_companies.get(ticker, us_companies.get(ticker, ticker))
+    
+    # Create more realistic mock news
+    mock_articles = [
         {
-            "title": f"Latest news about {ticker}",
-            "description": f"Recent developments and analysis for {ticker} stock",
-            "url": f"https://example.com/news/{ticker}",
+            "title": f"{company_name} Reports Strong Quarterly Performance",
+            "description": f"Latest financial results show positive trends for {company_name} with improved market positioning and strategic initiatives.",
+            "url": f"https://finance.example.com/news/{ticker.lower()}",
             "publishedAt": datetime.now().isoformat(),
-            "source": "Mock News"
+            "source": "Financial News",
+            "sentiment": 0.2
+        },
+        {
+            "title": f"Market Analysis: {company_name} Stock Outlook",
+            "description": f"Analysts provide insights on {company_name} stock performance and future prospects in the current market environment.",
+            "url": f"https://analysis.example.com/{ticker.lower()}",
+            "publishedAt": (datetime.now() - timedelta(hours=2)).isoformat(),
+            "source": "Market Analysis",
+            "sentiment": 0.1
+        },
+        {
+            "title": f"Industry Trends Impacting {company_name}",
+            "description": f"Sector developments and regulatory changes affecting {company_name} and similar companies in the industry.",
+            "url": f"https://industry.example.com/{ticker.lower()}",
+            "publishedAt": (datetime.now() - timedelta(hours=4)).isoformat(),
+            "source": "Industry News",
+            "sentiment": 0.0
         }
     ]
+    
+    return mock_articles
 
 
 @st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
