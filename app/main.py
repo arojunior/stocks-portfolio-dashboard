@@ -47,15 +47,15 @@ def main():
     # Create sidebar
     selected_portfolio = create_portfolio_sidebar(portfolio_manager)
 
-    # Portfolio Analysis Options - Right after portfolio selection
-    st.sidebar.header("📊 Analysis Options")
-
-    if st.sidebar.button("🌍 View All Portfolios (Consolidated)"):
+    # Quick Analysis Options - Right after portfolio selection
+    st.sidebar.subheader("📊 Quick Analysis")
+    
+    if st.sidebar.button("🌍 All Portfolios", use_container_width=True):
         from ui.consolidated_dashboard import display_consolidated_dashboard
         display_consolidated_dashboard()
         return
-
-    if st.sidebar.button("💰 Dividend Analysis (All Stocks)"):
+    
+    if st.sidebar.button("💰 Dividends", use_container_width=True):
         from ui.dividend_dashboard import display_dividend_dashboard
         display_dividend_dashboard()
         return
@@ -91,23 +91,25 @@ def main():
         st.cache_data.clear()
         st.rerun()
 
-    # Consolidated Portfolio View Option
-    st.header("🌍 Portfolio Views")
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("📊 View All Portfolios (Consolidated)", type="primary", use_container_width=True):
-            from ui.consolidated_dashboard import display_consolidated_dashboard
-            display_consolidated_dashboard()
-            return
-
-    with col2:
-        if st.button("💰 Dividend Analysis (All Stocks)", type="secondary", use_container_width=True):
-            from ui.dividend_dashboard import display_dividend_dashboard
-            display_dividend_dashboard()
-            return
-
-    st.info("💡 **Tips**: Use consolidated view to see all portfolios together, or dividend analysis to see income from all stocks")
+    # Portfolio Analysis Options
+    st.subheader("📊 Portfolio Analysis")
+    
+    # Create a more compact layout with radio buttons
+    analysis_option = st.radio(
+        "Choose analysis type:",
+        ["Individual Portfolio", "All Portfolios (Consolidated)", "Dividend Analysis (All Stocks)"],
+        horizontal=True,
+        index=0
+    )
+    
+    if analysis_option == "All Portfolios (Consolidated)":
+        from ui.consolidated_dashboard import display_consolidated_dashboard
+        display_consolidated_dashboard()
+        return
+    elif analysis_option == "Dividend Analysis (All Stocks)":
+        from ui.dividend_dashboard import display_dividend_dashboard
+        display_dividend_dashboard()
+        return
 
     st.divider()
 

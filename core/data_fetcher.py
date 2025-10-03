@@ -212,13 +212,13 @@ def get_price_to_book_ratio(ticker: str, market: str, info: Dict) -> float:
         pb_ratio = info.get("priceToBook", 0)
         if pb_ratio and pb_ratio > 0:
             return float(pb_ratio)
-        
+
         # Fallback to static data
         if market == "Brazilian":
             return BRAZILIAN_PB_RATIOS.get(ticker, 0)
         elif market == "US":
             return US_PB_RATIOS.get(ticker, 0)
-        
+
         return 0.0
     except Exception:
         return 0.0
