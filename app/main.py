@@ -47,10 +47,17 @@ def main():
     # Create sidebar
     selected_portfolio = create_portfolio_sidebar(portfolio_manager)
 
-    # Consolidated Portfolio View - Right after portfolio selection
+    # Portfolio Analysis Options - Right after portfolio selection
+    st.sidebar.header("📊 Analysis Options")
+    
     if st.sidebar.button("🌍 View All Portfolios (Consolidated)"):
         from ui.consolidated_dashboard import display_consolidated_dashboard
         display_consolidated_dashboard()
+        return
+    
+    if st.sidebar.button("💰 Dividend Analysis (All Stocks)"):
+        from ui.dividend_dashboard import display_dividend_dashboard
+        display_dividend_dashboard()
         return
 
     # FII Dividend Analysis is automatically integrated
@@ -87,7 +94,7 @@ def main():
     # Consolidated Portfolio View Option
     st.header("🌍 Portfolio Views")
     col1, col2 = st.columns(2)
-    
+
     with col1:
         if st.button("📊 View All Portfolios (Consolidated)", type="primary", use_container_width=True):
             from ui.consolidated_dashboard import display_consolidated_dashboard
@@ -95,8 +102,13 @@ def main():
             return
     
     with col2:
-        st.info("💡 **Tip**: Use consolidated view to see all your portfolios together across all markets")
+        if st.button("💰 Dividend Analysis (All Stocks)", type="secondary", use_container_width=True):
+            from ui.dividend_dashboard import display_dividend_dashboard
+            display_dividend_dashboard()
+            return
     
+    st.info("💡 **Tips**: Use consolidated view to see all portfolios together, or dividend analysis to see income from all stocks")
+
     st.divider()
 
     # Main dashboard area
