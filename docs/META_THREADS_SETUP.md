@@ -22,6 +22,7 @@ This guide explains how to set up Meta Threads integration for your portfolio da
 ### Step 2: Update Environment Variables
 
 Add to your `.env` file:
+
 ```bash
 META_APP_ID=2753087221690068
 META_ACCESS_TOKEN=EAABwzL...your_token_here
@@ -36,11 +37,13 @@ python3 tests/quick_token_test.py
 ## 🧪 **Testing**
 
 ### Quick Token Test
+
 ```bash
 python3 tests/quick_token_test.py
 ```
 
 ### Full Integration Test
+
 ```bash
 python3 tests/test_threads_integration.py
 ```
@@ -50,28 +53,34 @@ python3 tests/test_threads_integration.py
 ### Common Issues
 
 **"Invalid OAuth access token"**
+
 - **Cause**: Wrong token format (App token instead of User token)
 - **Fix**: Use Graph API Explorer to generate User token
 
 **"App not approved"**
+
 - **Cause**: App is in Live mode but not approved
 - **Fix**: Switch to Development mode in app settings
 
 **"Insufficient permissions"**
+
 - **Cause**: Missing required permissions
 - **Fix**: Regenerate token with all permissions selected
 
 **"User not authorized"**
+
 - **Cause**: Not added as test user
 - **Fix**: Add yourself as test user in app roles
 
 ### Token Format Check
 
 **❌ Wrong (App Access Token):**
+
 - `1548496402818134|E1K...`
 - `123456789|ABC...`
 
 **✅ Correct (User Access Token):**
+
 - `EAABwzL...`
 - `EAABwzL...`
 
@@ -93,7 +102,7 @@ class ThreadsOAuth:
         self.app_id = os.getenv("META_APP_ID")
         self.app_secret = os.getenv("META_APP_SECRET")
         self.redirect_uri = "http://localhost:8501/threads_callback"
-        
+
     def get_auth_url(self):
         params = {
             "client_id": self.app_id,

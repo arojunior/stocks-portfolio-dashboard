@@ -15,21 +15,21 @@ def fetch_threads_mentions(ticker: str, limit: int = 10) -> List[Dict]:
     try:
         access_token = os.getenv("META_ACCESS_TOKEN")
         app_id = os.getenv("META_APP_ID")
-        
+
         if not access_token or not app_id:
             print(f"Meta credentials not found for {ticker}")
             return []
-        
+
         # Meta Threads API requires OAuth flow and specific permissions
         # For now, we'll implement a basic test to check if the token works
         # The actual implementation would need proper OAuth setup
-        
+
         # Test basic API connection first
         test_url = "https://graph.threads.net/v1.0/me"
         test_params = {"access_token": access_token}
-        
+
         test_response = requests.get(test_url, params=test_params, timeout=10)
-        
+
         if test_response.status_code == 401:
             print(f"Meta Threads: Invalid access token for {ticker}")
             print("   Note: Threads API requires OAuth flow and specific permissions")
@@ -41,20 +41,20 @@ def fetch_threads_mentions(ticker: str, limit: int = 10) -> List[Dict]:
         elif test_response.status_code != 200:
             print(f"Meta Threads: Unexpected response {test_response.status_code} for {ticker}")
             return []
-        
+
         # If we get here, the token works but we need proper OAuth setup for full functionality
         print(f"Meta Threads: Token valid but full integration requires OAuth setup")
         print("   For now, returning empty results until OAuth is properly configured")
-        
+
         # TODO: Implement proper OAuth flow for Threads API
         # This would involve:
         # 1. Setting up OAuth redirect URI
         # 2. Getting authorization code from user
         # 3. Exchanging code for access token
         # 4. Using token to access Threads data
-        
+
         return []
-        
+
     except Exception as e:
         print(f"Error fetching Threads data for {ticker}: {e}")
         return []

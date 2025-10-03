@@ -19,19 +19,19 @@ def create_enhanced_news_feed(enhanced_news: Dict[str, List[Dict]]):
 
     # Create tabs for different news categories
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📰 All News", "📊 Market Analysis", "💰 Earnings", "⭐ Analyst Ratings", "🧵 Social Media"])
-    
+
     with tab1:
         display_all_news(enhanced_news)
-    
+
     with tab2:
         display_market_analysis(enhanced_news.get("market_analysis", []))
-    
+
     with tab3:
         display_earnings_news(enhanced_news.get("earnings_news", []))
-    
+
     with tab4:
         display_analyst_ratings(enhanced_news.get("analyst_ratings", []))
-    
+
     with tab5:
         display_social_media(enhanced_news.get("social_media", []))
 
@@ -113,9 +113,9 @@ def display_analyst_ratings(analyst_news: List[Dict]):
     if not analyst_news:
         st.info("No analyst ratings available")
         return
-    
+
     st.subheader(f"⭐ Analyst Ratings ({len(analyst_news)} reports)")
-    
+
     for article in analyst_news[:5]:
         with st.expander(f"📋 {article.get('title', 'No title')}"):
             st.write(f"**Source:** {article.get('source', 'Unknown')}")
@@ -138,9 +138,9 @@ def display_social_media(social_news: List[Dict]):
         4. **Add API Key**: Add your Meta app credentials to your `.env` file
         """)
         return
-    
+
     st.subheader(f"🧵 Social Media Mentions ({len(social_news)} posts)")
-    
+
     for post in social_news[:5]:
         with st.expander(f"🧵 {post.get('text', 'No content')[:50]}..."):
             st.write(f"**Author:** {post.get('author', 'Unknown')}")
@@ -150,7 +150,7 @@ def display_social_media(social_news: List[Dict]):
                 st.write(f"**Content:** {post['text']}")
             if post.get('url'):
                 st.link_button("View on Threads", post['url'])
-            
+
             # Show engagement metrics if available
             col1, col2, col3 = st.columns(3)
             with col1:

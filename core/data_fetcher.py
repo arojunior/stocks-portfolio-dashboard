@@ -778,14 +778,14 @@ def fetch_stock_news_mock_data(ticker: str) -> List[Dict]:
 def fetch_portfolio_news(tickers: List[str]) -> List[Dict]:
     """Fetch news for multiple stocks in a portfolio with optimized API usage"""
     all_news = []
-    
+
     # Limit the number of stocks to avoid rate limiting
     max_stocks = min(len(tickers), 5)  # Limit to 5 stocks max
     selected_tickers = tickers[:max_stocks]
-    
+
     # Track API usage to avoid rate limits
     alpha_vantage_used = False
-    
+
     for ticker in selected_tickers:
         # Prioritize NewsAPI (more reliable) over Alpha Vantage (rate limited)
         news_sources = [
@@ -793,7 +793,7 @@ def fetch_portfolio_news(tickers: List[str]) -> List[Dict]:
             fetch_stock_news_web_scraping,
             fetch_stock_news_mock_data
         ]
-        
+
         # Only try Alpha Vantage if we haven't used it yet (to avoid rate limits)
         if not alpha_vantage_used:
             news_sources.insert(1, fetch_stock_news_alpha_vantage)

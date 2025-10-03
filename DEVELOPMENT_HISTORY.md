@@ -314,18 +314,21 @@ stocks-portfolio-dashboard/
 ### Technical Implementation Details
 
 #### News Feed Architecture
+
 - **Enhanced News Fetcher**: `core/social_fetcher.py` - Multi-source news aggregation
 - **UI Components**: `ui/enhanced_news.py` - Rich news display with tabs and sentiment
 - **Free Sources**: NewsAPI (free tier), Alpha Vantage (free tier), Yahoo Finance (free)
 - **Caching**: 30-minute cache for news data, 1-hour cache for enhanced news
 
 #### Meta Threads Integration
+
 - **OAuth Flow**: Complete OAuth implementation for user access tokens
 - **API Endpoints**: Threads API v1.0 for posts, engagement metrics, and user data
 - **Token Management**: User access token generation via Graph API Explorer
 - **Rate Limiting**: Respects Meta API rate limits (200 requests/hour basic tier)
 
 #### UI/UX Improvements
+
 - **Tabbed News Interface**: Organized news by source and category
 - **Sentiment Analysis**: Free keyword-based sentiment analysis
 - **Engagement Metrics**: Social media engagement tracking
@@ -334,6 +337,7 @@ stocks-portfolio-dashboard/
 ### Current Status
 
 #### ✅ Completed Features
+
 - Enhanced news feed with multiple free data sources
 - Meta Threads integration ready for OAuth setup
 - Comprehensive documentation and testing tools
@@ -341,6 +345,7 @@ stocks-portfolio-dashboard/
 - Documentation consolidation and cleanup
 
 #### 🔄 Pending Setup
+
 - Meta Threads OAuth configuration (requires user action)
 - Access token generation via Graph API Explorer
 - Full social media integration testing

@@ -14,27 +14,27 @@ def test_token():
     """Test your Meta Threads access token"""
     print("🧪 Testing Meta Threads Access Token...")
     print("=" * 50)
-    
+
     # Get token from environment
     token = os.getenv("META_ACCESS_TOKEN")
-    
+
     if not token:
         print("❌ No META_ACCESS_TOKEN found in .env file")
         print("   Please add your token to the .env file")
         return False
-    
+
     print(f"✅ Found token: {token[:20]}...")
-    
+
     # Test 1: Basic API call
     print("\n1. Testing basic API call...")
     try:
         url = "https://graph.threads.net/v1.0/me"
         params = {"access_token": token}
-        
+
         response = requests.get(url, params=params, timeout=10)
-        
+
         print(f"   Status Code: {response.status_code}")
-        
+
         if response.status_code == 200:
             data = response.json()
             print(f"✅ SUCCESS! API call worked")
@@ -45,7 +45,7 @@ def test_token():
             print(f"❌ FAILED! Status: {response.status_code}")
             print(f"   Response: {response.text}")
             return False
-            
+
     except Exception as e:
         print(f"❌ ERROR: {e}")
         return False
@@ -53,11 +53,11 @@ def test_token():
 def test_threads_endpoint():
     """Test the threads endpoint specifically"""
     print("\n2. Testing threads endpoint...")
-    
+
     token = os.getenv("META_ACCESS_TOKEN")
     if not token:
         return False
-    
+
     try:
         url = "https://graph.threads.net/v1.0/me/threads"
         params = {
@@ -65,16 +65,16 @@ def test_threads_endpoint():
             "fields": "id,text,created_time",
             "limit": 5
         }
-        
+
         response = requests.get(url, params=params, timeout=10)
-        
+
         print(f"   Status Code: {response.status_code}")
-        
+
         if response.status_code == 200:
             data = response.json()
             threads = data.get("data", [])
             print(f"✅ SUCCESS! Found {len(threads)} threads")
-            
+
             if threads:
                 print("   Sample threads:")
                 for i, thread in enumerate(threads[:2], 1):
@@ -82,13 +82,13 @@ def test_threads_endpoint():
                     print(f"   {i}. {text}...")
             else:
                 print("   No threads found (this is normal if you haven't posted)")
-            
+
             return True
         else:
             print(f"❌ FAILED! Status: {response.status_code}")
             print(f"   Response: {response.text}")
             return False
-            
+
     except Exception as e:
         print(f"❌ ERROR: {e}")
         return False
@@ -96,20 +96,20 @@ def test_threads_endpoint():
 def main():
     print("🔍 META THREADS TOKEN TESTER")
     print("=" * 50)
-    
+
     # Test basic API
     basic_ok = test_token()
-    
+
     if basic_ok:
         # Test threads endpoint
         threads_ok = test_threads_endpoint()
-        
+
         print("\n" + "=" * 50)
         print("📊 RESULTS")
         print("=" * 50)
         print(f"Basic API: {'✅ PASS' if basic_ok else '❌ FAIL'}")
         print(f"Threads API: {'✅ PASS' if threads_ok else '❌ FAIL'}")
-        
+
         if basic_ok and threads_ok:
             print("\n🎉 EXCELLENT! Your token is working perfectly!")
             print("   You can now use the Threads integration in your app.")

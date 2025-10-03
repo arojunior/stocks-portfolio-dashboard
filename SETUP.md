@@ -103,7 +103,7 @@ source venv/bin/activate
 streamlit run app/main.py
 
 # Or run the legacy monolithic version
-streamlit run portfolio_dashboard.py
+streamlit run legacy/portfolio_dashboard.py
 ```
 
 The dashboard will be available at `http://localhost:8501`
