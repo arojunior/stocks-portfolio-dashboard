@@ -47,6 +47,9 @@ def main():
     # Create sidebar
     selected_portfolio = create_portfolio_sidebar(portfolio_manager)
 
+    # FII Dividend Analysis is automatically integrated
+    st.sidebar.info("🏢 **FII Analysis**: Automatically shows when viewing FII portfolios or portfolios containing FIIs")
+
     # Cache control section
     st.sidebar.header("Cache Control")
     if st.sidebar.button("🔄 Refresh Data"):
@@ -138,6 +141,135 @@ def main():
                         st.metric("Diversification Score", f"{diversification.get('diversification_score', 0):.0f}/100")
                     with col2:
                         st.metric("Concentration Risk", diversification.get("concentration_risk", "Unknown"))
+
+                # FII Dividend Analysis (if FII portfolio is selected or contains FIIs)
+                has_fiis = any(ticker.endswith("11") for ticker in portfolio_stocks.keys())
+                if selected_portfolio == "FII_B3" or has_fiis:
+                    try:
+                        from core.fii_dividend_analyzer import FIIDividendAnalyzer
+
+                        st.subheader("🏢 FII Dividend Analysis")
+                        st.info("ℹ️ **Data Source**: Using fallback data due to API limitations. For real-time data, check your API keys and rate limits.")
+
+                        # Initialize FII analyzer
+                        fii_analyzer = FIIDividendAnalyzer()
+
+                        # Get FII portfolio analysis
+                        with st.spinner("Analyzing FII dividends..."):
+                            fii_analysis = fii_analyzer.analyze_portfolio_dividends()
+
+                        if "error" not in fii_analysis:
+                            # Display FII summary metrics
+                            col1, col2, col3, col4 = st.columns(4)
+
+                            with col1:
+                                st.metric("Total FIIs", fii_analysis["total_fiis"])
+                            with col2:
+                                st.metric("Monthly Income", f"R$ {fii_analysis['total_monthly_income']:,.2f}")
+                            with col3:
+                                st.metric("Annual Income", f"R$ {fii_analysis['total_annual_income']:,.2f}")
+                            with col4:
+                                st.metric("Average Yield", f"{fii_analysis['average_yield']:.2f}%")
+
+                            # Display FII comparison table
+                            try:
+                                comparison_df = fii_analyzer.compare_fii_performance()
+                                if not comparison_df.empty:
+                                    st.subheader("📊 FII Performance Comparison")
+                                    st.dataframe(comparison_df, width='stretch')
+                            except Exception as e:
+                                st.warning(f"Could not generate FII comparison table: {e}")
+
+                            # Top dividend yielders
+                            st.subheader("🏆 Top Dividend Yielders")
+                            top_performers = fii_analyzer.get_top_dividend_yielders(5)
+
+                            if top_performers:
+                                for i, fii in enumerate(top_performers, 1):
+                                    with st.expander(f"{i}. {fii['ticker']} - {fii['dividend_yield']:.2f}% Yield"):
+                                        col1, col2, col3 = st.columns(3)
+                                        with col1:
+                                            st.metric("Monthly Income", f"R$ {fii['monthly_income']:.2f}")
+                                        with col2:
+                                            st.metric("Annual Income", f"R$ {fii['annual_income']:,.2f}")
+                                        with col3:
+                                            st.metric("Total Investment", f"R$ {fii['total_investment']:,.2f}")
+
+                            # Income forecast
+                            st.subheader("💰 Income Forecast")
+                            forecast = fii_analyzer.get_dividend_income_forecast(12)
+
+                            if "error" not in forecast:
+                                col1, col2 = st.columns(2)
+
+                                with col1:
+                                    st.metric("Monthly Income", f"R$ {forecast['monthly_income']:.2f}")
+                                    st.metric("12-Month Forecast", f"R$ {forecast['total_forecast']:,.2f}")
+
+                                with col2:
+                                    # Create forecast chart
+                                    import pandas as pd
+                                    import plotly.express as px
+
+                                    forecast_df = pd.DataFrame(forecast["monthly_breakdown"])
+                                    fig = px.line(
+                                        forecast_df,
+                                        x="month",
+                                        y="cumulative",
+                                        title="Cumulative Dividend Income Forecast",
+                                        labels={"month": "Month", "cumulative": "Cumulative Income (R$)"}
+                                    )
+                                    st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.error(f"❌ FII Analysis Error: {fii_analysis['error']}")
+
+                    except Exception as e:
+                        st.warning(f"FII dividend analysis error: {e}")
+                        st.info("FII analysis is available but may have limited functionality due to API limitations.")
+
+                # Quick FII Summary (for any portfolio with FIIs)
+                elif has_fiis:
+                    try:
+                        from core.fii_dividend_analyzer import FIIDividendAnalyzer
+
+                        st.subheader("🏢 FII Quick Summary")
+                        fii_analyzer = FIIDividendAnalyzer()
+
+                        # Get only FIIs from current portfolio
+                        fii_tickers = [ticker for ticker in portfolio_stocks.keys() if ticker.endswith("11")]
+
+                        if fii_tickers:
+                            st.info(f"Found {len(fii_tickers)} FIIs in this portfolio: {', '.join(fii_tickers)}")
+
+                            # Quick analysis for FIIs in this portfolio
+                            total_fii_investment = 0
+                            total_fii_income = 0
+
+                            for ticker in fii_tickers:
+                                position = portfolio_stocks[ticker]
+                                quantity = position.get("quantity", 0)
+                                avg_price = position.get("avg_price", 0)
+                                investment = quantity * avg_price
+                                total_fii_investment += investment
+
+                                # Estimate income using static yield
+                                from app.config import BRAZILIAN_DIVIDEND_YIELDS
+                                yield_pct = BRAZILIAN_DIVIDEND_YIELDS.get(ticker, 7.0)
+                                monthly_income = (yield_pct / 100) * avg_price * quantity / 12
+                                total_fii_income += monthly_income
+
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("FII Investment", f"R$ {total_fii_investment:,.2f}")
+                            with col2:
+                                st.metric("Monthly Income", f"R$ {total_fii_income:.2f}")
+                            with col3:
+                                st.metric("Annual Income", f"R$ {total_fii_income * 12:,.2f}")
+
+                            st.info("💡 **Tip**: Select 'FII_B3' portfolio for detailed FII dividend analysis!")
+
+                    except Exception as e:
+                        st.warning(f"Quick FII analysis error: {e}")
 
     # Enhanced News Section (Free Sources Only)
     try:
