@@ -49,12 +49,12 @@ def main():
 
     # Portfolio Analysis Options - Right after portfolio selection
     st.sidebar.header("📊 Analysis Options")
-    
+
     if st.sidebar.button("🌍 View All Portfolios (Consolidated)"):
         from ui.consolidated_dashboard import display_consolidated_dashboard
         display_consolidated_dashboard()
         return
-    
+
     if st.sidebar.button("💰 Dividend Analysis (All Stocks)"):
         from ui.dividend_dashboard import display_dividend_dashboard
         display_dividend_dashboard()
@@ -100,13 +100,13 @@ def main():
             from ui.consolidated_dashboard import display_consolidated_dashboard
             display_consolidated_dashboard()
             return
-    
+
     with col2:
         if st.button("💰 Dividend Analysis (All Stocks)", type="secondary", use_container_width=True):
             from ui.dividend_dashboard import display_dividend_dashboard
             display_dividend_dashboard()
             return
-    
+
     st.info("💡 **Tips**: Use consolidated view to see all portfolios together, or dividend analysis to see income from all stocks")
 
     st.divider()

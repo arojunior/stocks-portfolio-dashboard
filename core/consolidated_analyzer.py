@@ -106,6 +106,7 @@ class ConsolidatedAnalyzer:
                 change_percent = stock_data.get("change_percent", 0) if stock_data else 0
                 sector = stock_data.get("sector", "Unknown") if stock_data else "Unknown"
                 dividend_yield = stock_data.get("dividend_yield", 0) if stock_data else 0
+                price_to_book = stock_data.get("price_to_book", 0) if stock_data else 0
 
                 # Calculate values
                 total_investment = quantity * avg_price
@@ -126,6 +127,7 @@ class ConsolidatedAnalyzer:
                     "Gain/Loss %": gain_loss_percent,
                     "Sector": sector,
                     "Dividend Yield": dividend_yield,
+                    "Price/Book": price_to_book,
                     "Currency": currency,
                     "Market": market_type
                 })

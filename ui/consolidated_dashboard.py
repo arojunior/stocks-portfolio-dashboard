@@ -122,6 +122,7 @@ def display_consolidated_table(consolidated_df):
         display_df["Gain/Loss %"] = display_df["Gain/Loss %"].apply(lambda x: f"{x:.2f}%")
         display_df["Change %"] = display_df["Change %"].apply(lambda x: f"{x:.2f}%")
         display_df["Dividend Yield"] = display_df["Dividend Yield"].apply(lambda x: f"{x:.2f}%")
+        display_df["Price/Book"] = display_df["Price/Book"].apply(lambda x: f"{x:.2f}" if x > 0 else "N/A")
 
         st.dataframe(display_df, width='stretch')
     else:

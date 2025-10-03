@@ -45,6 +45,8 @@ from app.config import (
     US_SECTORS,
     BRAZILIAN_DIVIDEND_YIELDS,
     US_DIVIDEND_YIELDS,
+    BRAZILIAN_PB_RATIOS,
+    US_PB_RATIOS,
     RATE_LIMITS
 )
 
@@ -201,6 +203,25 @@ def get_annual_dividend(ticker: str, market: str, info: Dict, current_price: flo
     if current_price > 0 and quantity > 0:
         return (dividend_yield / 100) * current_price * quantity
     return 0.0
+
+
+def get_price_to_book_ratio(ticker: str, market: str, info: Dict) -> float:
+    """Get Price-to-Book ratio with fallback to static data"""
+    try:
+        # Try to get from API result first
+        pb_ratio = info.get("priceToBook", 0)
+        if pb_ratio and pb_ratio > 0:
+            return float(pb_ratio)
+        
+        # Fallback to static data
+        if market == "Brazilian":
+            return BRAZILIAN_PB_RATIOS.get(ticker, 0)
+        elif market == "US":
+            return US_PB_RATIOS.get(ticker, 0)
+        
+        return 0.0
+    except Exception:
+        return 0.0
 
 
 def fetch_enhanced_stock_data(
@@ -585,6 +606,7 @@ def fetch_from_brapi(ticker: str, market: str = "Brazilian") -> Optional[Dict]:
                 "currency": "BRL",
                 "sector": get_sector_info(ticker, market, result),
                 "dividend_yield": get_dividend_yield(ticker, market, result),
+                "price_to_book": get_price_to_book_ratio(ticker, market, result),
                 "info": result
             }
     except Exception as e:
