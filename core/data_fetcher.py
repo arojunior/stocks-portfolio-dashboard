@@ -15,6 +15,13 @@ from io import StringIO
 from contextlib import redirect_stderr
 from datetime import datetime, timedelta
 
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv is optional
+
 # Simple in-memory cache
 _cache = {}
 _cache_timestamps = {}
@@ -598,7 +605,7 @@ def fetch_stock_news_alpha_vantage(ticker: str) -> List[Dict]:
         if "Information" in data:
             print(f"Alpha Vantage: {data['Information']}")
             return []
-        
+
         if "feed" in data and data["feed"]:
             # Format the news data consistently
             formatted_news = []
@@ -631,12 +638,12 @@ def fetch_stock_news_newsapi(ticker: str) -> List[Dict]:
         # Search for news about the company
         url = f"https://newsapi.org/v2/everything?q={ticker}&apiKey={api_key}&pageSize=5"
         response = requests.get(url, timeout=10)
-        
+
         # Check for API key errors
         if response.status_code == 401:
             print(f"NewsAPI: Invalid API key for {ticker}")
             return []
-        
+
         response.raise_for_status()
         data = response.json()
 
@@ -674,7 +681,7 @@ def fetch_stock_news_web_scraping(ticker: str) -> List[Dict]:
 
 def fetch_stock_news_mock_data(ticker: str) -> List[Dict]:
     """Return enhanced mock news data for demonstration"""
-    
+
     # Brazilian stock company names for more realistic mock data
     brazilian_companies = {
         "VAMO3": "Vamos",
@@ -703,11 +710,11 @@ def fetch_stock_news_mock_data(ticker: str) -> List[Dict]:
         "HCTR11": "Hectare CE",
         "CPTI11": "Capitania Securities II"
     }
-    
+
     # US stock company names
     us_companies = {
         "AAPL": "Apple",
-        "MSFT": "Microsoft", 
+        "MSFT": "Microsoft",
         "GOOGL": "Alphabet",
         "TSLA": "Tesla",
         "DIS": "Disney",
@@ -728,10 +735,10 @@ def fetch_stock_news_mock_data(ticker: str) -> List[Dict]:
         "CQQQ": "Invesco China Technology",
         "APPS": "Digital Turbine"
     }
-    
+
     # Get company name
     company_name = brazilian_companies.get(ticker, us_companies.get(ticker, ticker))
-    
+
     # Create more realistic mock news
     mock_articles = [
         {
@@ -759,7 +766,7 @@ def fetch_stock_news_mock_data(ticker: str) -> List[Dict]:
             "sentiment": 0.0
         }
     ]
-    
+
     return mock_articles
 
 
