@@ -13,13 +13,45 @@ import streamlit as st
 def fetch_threads_mentions(ticker: str, limit: int = 10) -> List[Dict]:
     """Fetch Meta Threads mentions for a stock ticker"""
     try:
-        # Meta Threads API (free tier available)
-        # This would use the official Threads API
-        # For now, we'll implement a placeholder that can be extended
+        access_token = os.getenv("META_ACCESS_TOKEN")
+        app_id = os.getenv("META_APP_ID")
         
-        # TODO: Implement actual Threads API integration
-        # Requires: Meta Developer account, app setup, OAuth tokens
-        # API endpoints: https://developers.facebook.com/docs/threads/
+        if not access_token or not app_id:
+            print(f"Meta credentials not found for {ticker}")
+            return []
+        
+        # Meta Threads API requires OAuth flow and specific permissions
+        # For now, we'll implement a basic test to check if the token works
+        # The actual implementation would need proper OAuth setup
+        
+        # Test basic API connection first
+        test_url = "https://graph.threads.net/v1.0/me"
+        test_params = {"access_token": access_token}
+        
+        test_response = requests.get(test_url, params=test_params, timeout=10)
+        
+        if test_response.status_code == 401:
+            print(f"Meta Threads: Invalid access token for {ticker}")
+            print("   Note: Threads API requires OAuth flow and specific permissions")
+            return []
+        elif test_response.status_code == 500:
+            print(f"Meta Threads: API error for {ticker}")
+            print("   Note: This might be due to missing permissions or OAuth setup")
+            return []
+        elif test_response.status_code != 200:
+            print(f"Meta Threads: Unexpected response {test_response.status_code} for {ticker}")
+            return []
+        
+        # If we get here, the token works but we need proper OAuth setup for full functionality
+        print(f"Meta Threads: Token valid but full integration requires OAuth setup")
+        print("   For now, returning empty results until OAuth is properly configured")
+        
+        # TODO: Implement proper OAuth flow for Threads API
+        # This would involve:
+        # 1. Setting up OAuth redirect URI
+        # 2. Getting authorization code from user
+        # 3. Exchanging code for access token
+        # 4. Using token to access Threads data
         
         return []
         
@@ -61,7 +93,7 @@ def fetch_enhanced_portfolio_news(tickers: List[str]) -> Dict[str, List[Dict]]:
             # Get social media mentions from Threads (free)
             threads_mentions = fetch_threads_mentions(ticker, 3)
             enhanced_news["social_media"].extend(threads_mentions)
-            
+
             # Categorize news by type
             categorized = categorize_news_by_type(newsapi_news + alpha_news)
             enhanced_news["earnings_news"].extend(categorized.get("earnings", []))
