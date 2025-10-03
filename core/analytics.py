@@ -173,7 +173,7 @@ def calculate_risk_metrics(portfolio_data: List[Dict]) -> Dict:
         return {}
 
     # Calculate portfolio volatility (simplified)
-    returns = [stock.get("gain_loss_percent", 0) for stock in portfolio_data if stock.get("gain_loss_percent") is not None]
+    returns = [stock.get("_gain_loss_percent", 0) for stock in portfolio_data if stock.get("_gain_loss_percent") is not None]
 
     if len(returns) < 2:
         return {"volatility": 0, "risk_level": "Low"}
