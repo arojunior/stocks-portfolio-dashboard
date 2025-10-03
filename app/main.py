@@ -49,6 +49,13 @@ def main():
 
     # FII Dividend Analysis is automatically integrated
     st.sidebar.info("🏢 **FII Analysis**: Automatically shows when viewing FII portfolios or portfolios containing FIIs")
+    
+    # Consolidated Portfolio View
+    st.sidebar.header("🌍 Consolidated View")
+    if st.sidebar.button("📊 View All Portfolios"):
+        from ui.consolidated_dashboard import display_consolidated_dashboard
+        display_consolidated_dashboard()
+        return
 
     # Cache control section
     st.sidebar.header("Cache Control")
