@@ -192,43 +192,37 @@ def main():
         except Exception as fallback_error:
             st.warning(f"News fetching error: {fallback_error}")
 
-                # AI Analysis Section
-                st.subheader("🤖 AI Portfolio Analysis")
-                try:
-                    from ai.ollama_client import OllamaClient
-                    from ai.gemini_client import GeminiClient
+    # AI Analysis Section
+    st.subheader("🤖 AI Portfolio Analysis")
+    try:
+        from ai.ollama_client import OllamaClient
+        from ai.gemini_client import GeminiClient
 
-                    # Try Ollama first (local)
-                    ollama_client = OllamaClient()
-                    if ollama_client.available:
-                        with st.spinner("🤖 Analyzing portfolio with Ollama..."):
-                            analysis = ollama_client.analyze_portfolio(portfolio_data, metrics)
-                            if analysis:
-                                st.success("✅ AI Analysis Complete")
-                                st.markdown(analysis)
-                            else:
-                                st.warning("Ollama analysis failed")
-                    else:
-                        # Fallback to Gemini
-                        gemini_client = GeminiClient()
-                        if gemini_client.available:
-                            with st.spinner("🤖 Analyzing portfolio with Gemini..."):
-                                analysis = gemini_client.analyze_portfolio(portfolio_data, metrics)
-                                if analysis:
-                                    st.success("✅ AI Analysis Complete")
-                                    st.markdown(analysis)
-                                else:
-                                    st.warning("Gemini analysis failed")
-                        else:
-                            st.info("💡 No AI services available. Install Ollama or configure Gemini API key for AI analysis.")
-                except Exception as e:
-                    st.warning(f"AI analysis error: {e}")
-            else:
-                st.error("No data available for portfolio stocks")
+        # Try Ollama first (local)
+        ollama_client = OllamaClient()
+        if ollama_client.available:
+            with st.spinner("🤖 Analyzing portfolio with Ollama..."):
+                analysis = ollama_client.analyze_portfolio(portfolio_data, metrics)
+                if analysis:
+                    st.success("✅ AI Analysis Complete")
+                    st.markdown(analysis)
+                else:
+                    st.warning("Ollama analysis failed")
         else:
-            st.info("No stocks in this portfolio. Add stocks using the sidebar.")
-    else:
-        st.info("Please select a portfolio from the sidebar.")
+            # Fallback to Gemini
+            gemini_client = GeminiClient()
+            if gemini_client.available:
+                with st.spinner("🤖 Analyzing portfolio with Gemini..."):
+                    analysis = gemini_client.analyze_portfolio(portfolio_data, metrics)
+                    if analysis:
+                        st.success("✅ AI Analysis Complete")
+                        st.markdown(analysis)
+                    else:
+                        st.warning("Gemini analysis failed")
+            else:
+                st.info("💡 No AI services available. Install Ollama or configure Gemini API key for AI analysis.")
+    except Exception as e:
+        st.warning(f"AI analysis error: {e}")
 
 if __name__ == "__main__":
     main()
