@@ -128,11 +128,15 @@ def get_dividend_yield_from_yfinance(ticker: str, market: str) -> float:
                     pass
 
             except Exception as e:
-                print(f"Error getting dividend data from yfinance for {ticker}: {e}")
+                # Only log if it's not a JSON parsing error
+                if "Expecting value" not in str(e) and "JSON" not in str(e):
+                    print(f"Error getting dividend data from yfinance for {ticker}: {e}")
                 return 0.0
 
     except Exception as e:
-        print(f"Error accessing yfinance for {ticker}: {e}")
+        # Only log if it's not a JSON parsing error
+        if "Expecting value" not in str(e) and "JSON" not in str(e):
+            print(f"Error accessing yfinance for {ticker}: {e}")
         return 0.0
 
     return 0.0
@@ -772,23 +776,36 @@ def fetch_stock_news_mock_data(ticker: str) -> List[Dict]:
 
 @st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
 def fetch_portfolio_news(tickers: List[str]) -> List[Dict]:
-    """Fetch news for multiple stocks in a portfolio"""
+    """Fetch news for multiple stocks in a portfolio with optimized API usage"""
     all_news = []
-
-    for ticker in tickers:
-        # Try different news sources
+    
+    # Limit the number of stocks to avoid rate limiting
+    max_stocks = min(len(tickers), 5)  # Limit to 5 stocks max
+    selected_tickers = tickers[:max_stocks]
+    
+    # Track API usage to avoid rate limits
+    alpha_vantage_used = False
+    
+    for ticker in selected_tickers:
+        # Prioritize NewsAPI (more reliable) over Alpha Vantage (rate limited)
         news_sources = [
-            fetch_stock_news_alpha_vantage,
-            fetch_stock_news_newsapi,
+            fetch_stock_news_newsapi,  # Try NewsAPI first
             fetch_stock_news_web_scraping,
             fetch_stock_news_mock_data
         ]
+        
+        # Only try Alpha Vantage if we haven't used it yet (to avoid rate limits)
+        if not alpha_vantage_used:
+            news_sources.insert(1, fetch_stock_news_alpha_vantage)
 
         for fetch_func in news_sources:
             try:
                 news = fetch_func(ticker)
                 if news:
                     all_news.extend(news)
+                    # Mark Alpha Vantage as used if it was successful
+                    if fetch_func == fetch_stock_news_alpha_vantage:
+                        alpha_vantage_used = True
                     break  # Use first successful source
             except Exception as e:
                 continue
