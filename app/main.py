@@ -47,15 +47,14 @@ def main():
     # Create sidebar
     selected_portfolio = create_portfolio_sidebar(portfolio_manager)
 
-    # FII Dividend Analysis is automatically integrated
-    st.sidebar.info("🏢 **FII Analysis**: Automatically shows when viewing FII portfolios or portfolios containing FIIs")
-    
-    # Consolidated Portfolio View
-    st.sidebar.header("🌍 Consolidated View")
-    if st.sidebar.button("📊 View All Portfolios"):
+    # Consolidated Portfolio View - Right after portfolio selection
+    if st.sidebar.button("🌍 View All Portfolios (Consolidated)"):
         from ui.consolidated_dashboard import display_consolidated_dashboard
         display_consolidated_dashboard()
         return
+
+    # FII Dividend Analysis is automatically integrated
+    st.sidebar.info("🏢 **FII Analysis**: Automatically shows when viewing FII portfolios or portfolios containing FIIs")
 
     # Cache control section
     st.sidebar.header("Cache Control")
@@ -84,6 +83,21 @@ def main():
     if st.sidebar.button("🔄 Manual Refresh"):
         st.cache_data.clear()
         st.rerun()
+
+    # Consolidated Portfolio View Option
+    st.header("🌍 Portfolio Views")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("📊 View All Portfolios (Consolidated)", type="primary", use_container_width=True):
+            from ui.consolidated_dashboard import display_consolidated_dashboard
+            display_consolidated_dashboard()
+            return
+    
+    with col2:
+        st.info("💡 **Tip**: Use consolidated view to see all your portfolios together across all markets")
+    
+    st.divider()
 
     # Main dashboard area
     if selected_portfolio:
