@@ -97,7 +97,7 @@ def main():
     # Create a more compact layout with radio buttons
     analysis_option = st.radio(
         "Choose analysis type:",
-        ["Individual Portfolio", "All Portfolios (Consolidated)", "Dividend Analysis (All Stocks)"],
+        ["All Portfolios (Consolidated)", "Individual Portfolio", "Dividend Analysis (All Stocks)"],
         horizontal=True,
         index=0
     )

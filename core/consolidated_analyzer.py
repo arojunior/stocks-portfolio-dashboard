@@ -10,6 +10,7 @@ from datetime import datetime
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
 from core.portfolio_manager import PortfolioManager
 from core.data_fetcher import fetch_stock_data
 from core.analytics import calculate_portfolio_metrics
@@ -18,10 +19,30 @@ from core.fii_dividend_analyzer import FIIDividendAnalyzer
 
 class ConsolidatedAnalyzer:
     """Analyzes all portfolios together for consolidated view"""
-
+    
     def __init__(self):
         self.portfolio_manager = PortfolioManager()
         self.fii_analyzer = FIIDividendAnalyzer()
+        self._usd_to_brl_rate = None
+    
+    def get_usd_to_brl_rate(self) -> float:
+        """Get USD to BRL exchange rate"""
+        if self._usd_to_brl_rate is not None:
+            return self._usd_to_brl_rate
+        
+        try:
+            # Try to get real-time exchange rate
+            response = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                self._usd_to_brl_rate = data["rates"]["BRL"]
+                return self._usd_to_brl_rate
+        except Exception as e:
+            print(f"Error fetching exchange rate: {e}")
+        
+        # Fallback to approximate rate
+        self._usd_to_brl_rate = 5.2  # Approximate USD to BRL rate
+        return self._usd_to_brl_rate
 
     def load_all_portfolios(self) -> Dict:
         """Load all portfolio data"""
@@ -61,7 +82,14 @@ class ConsolidatedAnalyzer:
             for ticker, position in stocks.items():
                 quantity = position.get("quantity", 0)
                 avg_price = position.get("avg_price", 0)
-                investment = quantity * avg_price
+                
+                # Convert USD to BRL for US stocks
+                if currency == "USD":
+                    usd_to_brl = self.get_usd_to_brl_rate()
+                    investment = quantity * avg_price * usd_to_brl
+                else:
+                    investment = quantity * avg_price
+                
                 portfolio_investment += investment
 
             consolidated["portfolios"][portfolio_name] = {
@@ -108,9 +136,18 @@ class ConsolidatedAnalyzer:
                 dividend_yield = stock_data.get("dividend_yield", 0) if stock_data else 0
                 price_to_book = stock_data.get("price_to_book", 0) if stock_data else 0
 
-                # Calculate values
-                total_investment = quantity * avg_price
-                current_value = quantity * current_price
+                # Convert USD to BRL for US stocks
+                if currency == "USD":
+                    usd_to_brl = self.get_usd_to_brl_rate()
+                    avg_price_brl = avg_price * usd_to_brl
+                    current_price_brl = current_price * usd_to_brl
+                else:
+                    avg_price_brl = avg_price
+                    current_price_brl = current_price
+
+                # Calculate values in BRL
+                total_investment = quantity * avg_price_brl
+                current_value = quantity * current_price_brl
                 gain_loss = current_value - total_investment
                 gain_loss_percent = (gain_loss / total_investment * 100) if total_investment > 0 else 0
 
@@ -118,8 +155,8 @@ class ConsolidatedAnalyzer:
                     "Portfolio": portfolio_name,
                     "Ticker": ticker,
                     "Quantity": quantity,
-                    "Avg Price": avg_price,
-                    "Current Price": current_price,
+                    "Avg Price": avg_price_brl,
+                    "Current Price": current_price_brl,
                     "Change %": change_percent,
                     "Total Investment": total_investment,
                     "Current Value": current_value,
@@ -128,7 +165,7 @@ class ConsolidatedAnalyzer:
                     "Sector": sector,
                     "Dividend Yield": dividend_yield,
                     "Price/Book": price_to_book,
-                    "Currency": currency,
+                    "Currency": "BRL",  # All values now in BRL
                     "Market": market_type
                 })
 
