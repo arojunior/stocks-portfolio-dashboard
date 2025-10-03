@@ -1,306 +1,181 @@
 """
 Enhanced News UI Components
-Provides rich, interactive news display with social media integration
+Uses only free data sources - no paid APIs or mock data
 """
 
 import streamlit as st
-import pandas as pd
-from typing import Dict, List
-from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
+from typing import Dict, List
+from datetime import datetime
 
 
 def create_enhanced_news_feed(enhanced_news: Dict[str, List[Dict]]):
-    """Create an enhanced news feed with multiple sources and rich UI"""
+    """Create enhanced news feed using only free data sources"""
     
-    st.subheader("📰 Enhanced News Feed")
+    if not any(enhanced_news.values()):
+        st.info("No enhanced news available at the moment")
+        return
     
-    # Create tabs for different news sources
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📰 All News", 
-        "🐦 Social Media", 
-        "💬 Reddit", 
-        "📊 Analyst Reports", 
-        "📈 Sentiment Analysis"
-    ])
+    # Create tabs for different news categories
+    tab1, tab2, tab3, tab4 = st.tabs(["📰 All News", "📊 Market Analysis", "💰 Earnings", "⭐ Analyst Ratings"])
     
     with tab1:
         display_all_news(enhanced_news)
     
     with tab2:
-        display_social_media_news(enhanced_news.get("social_media", []))
+        display_market_analysis(enhanced_news.get("market_analysis", []))
     
     with tab3:
-        display_reddit_news(enhanced_news.get("reddit_discussions", []))
+        display_earnings_news(enhanced_news.get("earnings_news", []))
     
     with tab4:
-        display_analyst_reports(enhanced_news.get("analyst_reports", []))
-    
-    with tab5:
-        display_sentiment_analysis(enhanced_news)
+        display_analyst_ratings(enhanced_news.get("analyst_ratings", []))
 
 
 def display_all_news(enhanced_news: Dict[str, List[Dict]]):
     """Display all news in a unified feed"""
-    
-    # Combine all news sources
     all_news = []
-    for source, items in enhanced_news.items():
-        for item in items:
-            item["source_type"] = source
-            all_news.append(item)
+    for category, items in enhanced_news.items():
+        all_news.extend(items)
     
-    # Sort by date
-    all_news.sort(key=lambda x: x.get('created_at', x.get('published_at', '')), reverse=True)
-    
-    # Display news cards
-    for i, item in enumerate(all_news[:10]):  # Show top 10
-        create_news_card(item, i)
-
-
-def display_social_media_news(social_news: List[Dict]):
-    """Display social media news with engagement metrics"""
-    
-    if not social_news:
-        st.info("No social media mentions found")
+    if not all_news:
+        st.info("No news available")
         return
     
-    st.write(f"**Found {len(social_news)} social media mentions**")
+    # Sort by date (newest first)
+    all_news.sort(key=lambda x: x.get('publishedAt', ''), reverse=True)
     
-    for item in social_news:
-        with st.container():
+    st.subheader(f"📰 Latest News ({len(all_news)} articles)")
+    
+    for i, article in enumerate(all_news[:10]):  # Show top 10
+        with st.expander(f"📄 {article.get('title', 'No title')}"):
             col1, col2 = st.columns([3, 1])
             
             with col1:
-                st.write(f"**{item.get('text', item.get('title', 'No title'))}**")
-                st.write(f"👤 {item.get('author', 'Unknown')}")
-                st.write(f"🕒 {format_timestamp(item.get('created_at', ''))}")
+                st.write(f"**Source:** {article.get('source', 'Unknown')}")
+                st.write(f"**Published:** {format_date(article.get('publishedAt', ''))}")
+                if article.get('description'):
+                    st.write(f"**Description:** {article['description']}")
             
             with col2:
-                # Engagement metrics
-                if 'retweet_count' in item:
-                    st.metric("Retweets", item.get('retweet_count', 0))
-                if 'like_count' in item:
-                    st.metric("Likes", item.get('like_count', 0))
-                if 'score' in item:
-                    st.metric("Score", item.get('score', 0))
-                
-                # Sentiment indicator
-                sentiment = item.get('sentiment', 0)
-                sentiment_color = get_sentiment_color(sentiment)
-                st.markdown(f"**Sentiment:** {sentiment:.2f}")
-                st.markdown(f"<div style='background-color: {sentiment_color}; padding: 5px; border-radius: 5px; text-align: center; color: white;'>Sentiment: {sentiment:.2f}</div>", unsafe_allow_html=True)
+                if article.get('url'):
+                    st.link_button("Read More", article['url'])
             
-            if item.get('url'):
-                st.link_button("View Original", item['url'])
-            
-            st.divider()
+            # Add sentiment indicator if available
+            sentiment = article.get('sentiment', 0)
+            if sentiment != 0:
+                sentiment_emoji = "😊" if sentiment > 0.1 else "😐" if sentiment > -0.1 else "😞"
+                st.write(f"**Sentiment:** {sentiment_emoji} {sentiment:.2f}")
 
 
-def display_reddit_news(reddit_news: List[Dict]):
-    """Display Reddit discussions with community metrics"""
-    
-    if not reddit_news:
-        st.info("No Reddit discussions found")
+def display_market_analysis(market_news: List[Dict]):
+    """Display market analysis news"""
+    if not market_news:
+        st.info("No market analysis available")
         return
     
-    st.write(f"**Found {len(reddit_news)} Reddit discussions**")
+    st.subheader(f"📊 Market Analysis ({len(market_news)} articles)")
     
-    for item in reddit_news:
-        with st.container():
-            col1, col2 = st.columns([3, 1])
-            
-            with col1:
-                st.write(f"**{item.get('title', 'No title')}**")
-                st.write(f"📝 {item.get('content', '')[:200]}...")
-                st.write(f"👤 {item.get('author', 'Unknown')} • r/{item.get('subreddit', 'unknown')}")
-                st.write(f"🕒 {format_timestamp(item.get('created_at', ''))}")
-            
-            with col2:
-                st.metric("Score", item.get('score', 0))
-                st.metric("Comments", item.get('comments', 0))
-                
-                # Sentiment indicator
-                sentiment = item.get('sentiment', 0)
-                sentiment_color = get_sentiment_color(sentiment)
-                st.markdown(f"<div style='background-color: {sentiment_color}; padding: 5px; border-radius: 5px; text-align: center; color: white;'>Sentiment: {sentiment:.2f}</div>", unsafe_allow_html=True)
-            
-            if item.get('url'):
-                st.link_button("View on Reddit", item['url'])
-            
-            st.divider()
+    for article in market_news[:5]:
+        with st.expander(f"📈 {article.get('title', 'No title')}"):
+            st.write(f"**Source:** {article.get('source', 'Unknown')}")
+            st.write(f"**Published:** {format_date(article.get('publishedAt', ''))}")
+            if article.get('description'):
+                st.write(f"**Analysis:** {article['description']}")
+            if article.get('url'):
+                st.link_button("Read Full Analysis", article['url'])
 
 
-def display_analyst_reports(analyst_news: List[Dict]):
-    """Display analyst reports with ratings and target prices"""
+def display_earnings_news(earnings_news: List[Dict]):
+    """Display earnings-related news"""
+    if not earnings_news:
+        st.info("No earnings news available")
+        return
     
+    st.subheader(f"💰 Earnings News ({len(earnings_news)} articles)")
+    
+    for article in earnings_news[:5]:
+        with st.expander(f"💼 {article.get('title', 'No title')}"):
+            st.write(f"**Source:** {article.get('source', 'Unknown')}")
+            st.write(f"**Published:** {format_date(article.get('publishedAt', ''))}")
+            if article.get('description'):
+                st.write(f"**Details:** {article['description']}")
+            if article.get('url'):
+                st.link_button("Read Full Report", article['url'])
+
+
+def display_analyst_ratings(analyst_news: List[Dict]):
+    """Display analyst ratings and reports"""
     if not analyst_news:
-        st.info("No analyst reports found")
+        st.info("No analyst ratings available")
         return
     
-    st.write(f"**Found {len(analyst_news)} analyst reports**")
+    st.subheader(f"⭐ Analyst Ratings ({len(analyst_news)} reports)")
     
-    for item in analyst_news:
-        with st.container():
-            col1, col2, col3 = st.columns([2, 1, 1])
-            
-            with col1:
-                st.write(f"**{item.get('title', 'No title')}**")
-                st.write(f"📝 {item.get('content', '')[:200]}...")
-                st.write(f"🏢 {item.get('analyst', 'Unknown')}")
-                st.write(f"🕒 {format_timestamp(item.get('published_at', ''))}")
-            
-            with col2:
-                rating = item.get('rating', 'N/A')
-                rating_color = get_rating_color(rating)
-                st.markdown(f"**Rating:** {rating}")
-                st.markdown(f"<div style='background-color: {rating_color}; padding: 5px; border-radius: 5px; text-align: center; color: white;'>{rating}</div>", unsafe_allow_html=True)
-            
-            with col3:
-                target_price = item.get('target_price', 'N/A')
-                st.metric("Target Price", target_price)
-                
-                # Sentiment indicator
-                sentiment = item.get('sentiment', 0)
-                sentiment_color = get_sentiment_color(sentiment)
-                st.markdown(f"<div style='background-color: {sentiment_color}; padding: 5px; border-radius: 5px; text-align: center; color: white;'>Sentiment: {sentiment:.2f}</div>", unsafe_allow_html=True)
-            
-            if item.get('url'):
-                st.link_button("Read Full Report", item['url'])
-            
-            st.divider()
+    for article in analyst_news[:5]:
+        with st.expander(f"📋 {article.get('title', 'No title')}"):
+            st.write(f"**Source:** {article.get('source', 'Unknown')}")
+            st.write(f"**Published:** {format_date(article.get('publishedAt', ''))}")
+            if article.get('description'):
+                st.write(f"**Rating:** {article['description']}")
+            if article.get('url'):
+                st.link_button("Read Full Report", article['url'])
 
 
-def display_sentiment_analysis(enhanced_news: Dict[str, List[Dict]]):
-    """Display sentiment analysis across all news sources"""
+def create_sentiment_chart(news_items: List[Dict]):
+    """Create sentiment analysis chart using free text analysis"""
+    if not news_items:
+        return None
     
-    # Collect all sentiment data
-    sentiment_data = []
-    for source, items in enhanced_news.items():
-        for item in items:
-            if 'sentiment' in item:
-                sentiment_data.append({
-                    'source': source,
-                    'sentiment': item['sentiment'],
-                    'title': item.get('title', item.get('text', 'No title'))[:50]
-                })
+    # Simple sentiment analysis using keyword matching
+    positive_keywords = ["up", "rise", "gain", "profit", "beat", "exceed", "strong", "bullish"]
+    negative_keywords = ["down", "fall", "loss", "miss", "weak", "bearish", "decline", "drop"]
     
-    if not sentiment_data:
-        st.info("No sentiment data available")
-        return
+    sentiment_data = {"Positive": 0, "Neutral": 0, "Negative": 0}
     
-    # Create sentiment visualization
-    df = pd.DataFrame(sentiment_data)
-    
-    # Overall sentiment metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        avg_sentiment = df['sentiment'].mean()
-        st.metric("Average Sentiment", f"{avg_sentiment:.2f}")
-    
-    with col2:
-        positive_count = len(df[df['sentiment'] > 0.1])
-        st.metric("Positive Items", positive_count)
-    
-    with col3:
-        negative_count = len(df[df['sentiment'] < -0.1])
-        st.metric("Negative Items", negative_count)
-    
-    with col4:
-        neutral_count = len(df[(df['sentiment'] >= -0.1) & (df['sentiment'] <= 0.1)])
-        st.metric("Neutral Items", neutral_count)
-    
-    # Sentiment distribution chart
-    fig = px.histogram(df, x='sentiment', color='source', 
-                      title="Sentiment Distribution by Source",
-                      labels={'sentiment': 'Sentiment Score', 'count': 'Number of Items'})
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Sentiment by source
-    source_sentiment = df.groupby('source')['sentiment'].mean().reset_index()
-    fig2 = px.bar(source_sentiment, x='source', y='sentiment',
-                  title="Average Sentiment by Source",
-                  labels={'source': 'News Source', 'sentiment': 'Average Sentiment'})
-    st.plotly_chart(fig2, use_container_width=True)
-
-
-def create_news_card(item: Dict, index: int):
-    """Create a rich news card with enhanced formatting"""
-    
-    with st.container():
-        # Header with sentiment indicator
-        col1, col2, col3 = st.columns([3, 1, 1])
+    for item in news_items:
+        title = item.get("title", "").lower()
+        description = item.get("description", "").lower()
+        text = f"{title} {description}"
         
-        with col1:
-            title = item.get('title', item.get('text', 'No title'))
-            st.write(f"**{title}**")
+        positive_score = sum(1 for keyword in positive_keywords if keyword in text)
+        negative_score = sum(1 for keyword in negative_keywords if keyword in text)
         
-        with col2:
-            source = item.get('source', 'Unknown')
-            st.write(f"📰 {source}")
-        
-        with col3:
-            sentiment = item.get('sentiment', 0)
-            sentiment_color = get_sentiment_color(sentiment)
-            st.markdown(f"<div style='background-color: {sentiment_color}; padding: 5px; border-radius: 5px; text-align: center; color: white;'>Sentiment: {sentiment:.2f}</div>", unsafe_allow_html=True)
-        
-        # Content and metadata
-        content = item.get('content', item.get('description', ''))
-        if content:
-            st.write(content[:300] + "..." if len(content) > 300 else content)
-        
-        # Metadata row
-        col1, col2, col3 = st.columns([2, 1, 1])
-        
-        with col1:
-            author = item.get('author', 'Unknown')
-            timestamp = format_timestamp(item.get('created_at', item.get('published_at', '')))
-            st.write(f"👤 {author} • 🕒 {timestamp}")
-        
-        with col2:
-            if 'retweet_count' in item:
-                st.write(f"🔄 {item['retweet_count']} retweets")
-            elif 'score' in item:
-                st.write(f"⬆️ {item['score']} score")
-        
-        with col3:
-            if item.get('url'):
-                st.link_button("Read More", item['url'])
-        
-        st.divider()
+        if positive_score > negative_score:
+            sentiment_data["Positive"] += 1
+        elif negative_score > positive_score:
+            sentiment_data["Negative"] += 1
+        else:
+            sentiment_data["Neutral"] += 1
+    
+    # Create pie chart
+    fig = px.pie(
+        values=list(sentiment_data.values()),
+        names=list(sentiment_data.keys()),
+        title="News Sentiment Distribution",
+        color_discrete_map={
+            "Positive": "#28a745",
+            "Neutral": "#ffc107", 
+            "Negative": "#dc3545"
+        }
+    )
+    
+    return fig
 
 
-def get_sentiment_color(sentiment: float) -> str:
-    """Get color based on sentiment score"""
-    if sentiment > 0.3:
-        return "#4CAF50"  # Green for positive
-    elif sentiment < -0.3:
-        return "#F44336"  # Red for negative
-    else:
-        return "#FF9800"  # Orange for neutral
-
-
-def get_rating_color(rating: str) -> str:
-    """Get color based on analyst rating"""
-    rating_lower = rating.lower()
-    if 'buy' in rating_lower or 'strong buy' in rating_lower:
-        return "#4CAF50"  # Green
-    elif 'sell' in rating_lower or 'strong sell' in rating_lower:
-        return "#F44336"  # Red
-    elif 'hold' in rating_lower:
-        return "#FF9800"  # Orange
-    else:
-        return "#9E9E9E"  # Gray
-
-
-def format_timestamp(timestamp: str) -> str:
-    """Format timestamp for display"""
+def format_date(date_str: str) -> str:
+    """Format date string for display"""
+    if not date_str:
+        return "Unknown"
+    
     try:
-        if timestamp:
-            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-            return dt.strftime("%Y-%m-%d %H:%M")
+        # Handle different date formats
+        if 'T' in date_str:
+            dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        else:
+            dt = datetime.strptime(date_str, '%Y-%m-%d')
+        
+        return dt.strftime('%Y-%m-%d %H:%M')
     except:
-        pass
-    return "Unknown time"
+        return date_str
