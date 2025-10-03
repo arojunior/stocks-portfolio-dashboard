@@ -49,12 +49,12 @@ def main():
 
     # Quick Analysis Options - Right after portfolio selection
     st.sidebar.subheader("📊 Quick Analysis")
-    
+
     if st.sidebar.button("🌍 All Portfolios", use_container_width=True):
         from ui.consolidated_dashboard import display_consolidated_dashboard
         display_consolidated_dashboard()
         return
-    
+
     if st.sidebar.button("💰 Dividends", use_container_width=True):
         from ui.dividend_dashboard import display_dividend_dashboard
         display_dividend_dashboard()
@@ -93,7 +93,7 @@ def main():
 
     # Portfolio Analysis Options
     st.subheader("📊 Portfolio Analysis")
-    
+
     # Create a more compact layout with radio buttons
     analysis_option = st.radio(
         "Choose analysis type:",
@@ -101,7 +101,7 @@ def main():
         horizontal=True,
         index=0
     )
-    
+
     if analysis_option == "All Portfolios (Consolidated)":
         from ui.consolidated_dashboard import display_consolidated_dashboard
         display_consolidated_dashboard()
