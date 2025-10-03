@@ -19,17 +19,17 @@ from core.fii_dividend_analyzer import FIIDividendAnalyzer
 
 class ConsolidatedAnalyzer:
     """Analyzes all portfolios together for consolidated view"""
-    
+
     def __init__(self):
         self.portfolio_manager = PortfolioManager()
         self.fii_analyzer = FIIDividendAnalyzer()
         self._usd_to_brl_rate = None
-    
+
     def get_usd_to_brl_rate(self) -> float:
         """Get USD to BRL exchange rate"""
         if self._usd_to_brl_rate is not None:
             return self._usd_to_brl_rate
-        
+
         try:
             # Try to get real-time exchange rate
             response = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=5)
@@ -39,7 +39,7 @@ class ConsolidatedAnalyzer:
                 return self._usd_to_brl_rate
         except Exception as e:
             print(f"Error fetching exchange rate: {e}")
-        
+
         # Fallback to approximate rate
         self._usd_to_brl_rate = 5.2  # Approximate USD to BRL rate
         return self._usd_to_brl_rate
@@ -82,14 +82,14 @@ class ConsolidatedAnalyzer:
             for ticker, position in stocks.items():
                 quantity = position.get("quantity", 0)
                 avg_price = position.get("avg_price", 0)
-                
+
                 # Convert USD to BRL for US stocks
                 if currency == "USD":
                     usd_to_brl = self.get_usd_to_brl_rate()
                     investment = quantity * avg_price * usd_to_brl
                 else:
                     investment = quantity * avg_price
-                
+
                 portfolio_investment += investment
 
             consolidated["portfolios"][portfolio_name] = {

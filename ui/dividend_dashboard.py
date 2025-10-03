@@ -111,18 +111,18 @@ def display_dividend_table(dividend_data):
 
         # Format for display
         display_df = df.copy()
-        display_df["Avg Price"] = display_df["Avg Price"].apply(lambda x: f"R$ {x:.2f}")
-        display_df["Current Price"] = display_df["Current Price"].apply(lambda x: f"R$ {x:.2f}")
-        display_df["Total Investment"] = display_df["Total Investment"].apply(lambda x: f"R$ {x:,.2f}")
-        display_df["Current Value"] = display_df["Current Value"].apply(lambda x: f"R$ {x:,.2f}")
-        display_df["Monthly Income"] = display_df["Monthly Income"].apply(lambda x: f"R$ {x:.2f}")
-        display_df["Annual Income"] = display_df["Annual Income"].apply(lambda x: f"R$ {x:,.2f}")
-        display_df["Dividend Yield"] = display_df["Dividend Yield"].apply(lambda x: f"{x:.2f}%")
-        display_df["Income Yield"] = display_df["Income Yield"].apply(lambda x: f"{x:.2f}%")
-        display_df["Change %"] = display_df["Change %"].apply(lambda x: f"{x:.2f}%")
+        display_df["avg_price"] = display_df["avg_price"].apply(lambda x: f"R$ {x:.2f}")
+        display_df["current_price"] = display_df["current_price"].apply(lambda x: f"R$ {x:.2f}")
+        display_df["total_investment"] = display_df["total_investment"].apply(lambda x: f"R$ {x:,.2f}")
+        display_df["current_value"] = display_df["current_value"].apply(lambda x: f"R$ {x:,.2f}")
+        display_df["monthly_income"] = display_df["monthly_income"].apply(lambda x: f"R$ {x:.2f}")
+        display_df["annual_income"] = display_df["annual_income"].apply(lambda x: f"R$ {x:,.2f}")
+        display_df["dividend_yield"] = display_df["dividend_yield"].apply(lambda x: f"{x:.2f}%")
+        display_df["income_yield"] = display_df["income_yield"].apply(lambda x: f"{x:.2f}%")
+        display_df["change_percent"] = display_df["change_percent"].apply(lambda x: f"{x:.2f}%")
 
         # Sort by annual income
-        display_df = display_df.sort_values("Annual Income", ascending=False)
+        display_df = display_df.sort_values("annual_income", ascending=False)
 
         st.dataframe(display_df, width='stretch')
     else:
