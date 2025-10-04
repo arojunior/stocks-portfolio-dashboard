@@ -15,6 +15,7 @@ google-generativeai>=0.8.0
 
 # Telegram Integration
 telethon>=1.34.0
+pytz>=2023.3
 
 # Optional: For better performance and additional features
 # kaleido  # For static image export of charts

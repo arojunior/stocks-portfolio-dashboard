@@ -104,7 +104,7 @@ class LiveTelegramMonitor:
         """Get list of available channels and groups"""
         if not self.client:
             return []
-        
+
         try:
             channels = []
             async for dialog in self.client.iter_dialogs():
@@ -112,7 +112,7 @@ class LiveTelegramMonitor:
                 if dialog.is_channel or dialog.is_group:
                     # Get entity info
                     entity = dialog.entity
-                    
+
                     # Determine type
                     if dialog.is_channel and entity.broadcast:
                         chat_type = "Channel"
@@ -120,7 +120,7 @@ class LiveTelegramMonitor:
                         chat_type = "Group"
                     else:
                         chat_type = "Supergroup"
-                    
+
                     channels.append({
                         "id": dialog.id,
                         "title": dialog.title,
@@ -242,16 +242,16 @@ def display_live_telegram_dashboard():
 
                         if channels:
                             st.success(f"✅ Found {len(channels)} channels and groups")
-                            
+
                             # Display channels and groups
                             st.write("**Available Channels & Groups:**")
                             for i, channel in enumerate(channels[:10]):  # Show first 10
                                 type_emoji = "📺" if channel['type'] == "Channel" else "👥" if channel['type'] == "Group" else "🔗"
                                 st.write(f"{i+1}. {type_emoji} {channel['title']} ({channel['type']}) - {channel['participants_count']:,} members")
-                            
+
                             if len(channels) > 10:
                                 st.write(f"... and {len(channels) - 10} more channels and groups")
-                            
+
                             # Store channels in session state
                             st.session_state['telegram_channels'] = channels
 
@@ -313,9 +313,27 @@ def display_live_telegram_dashboard():
                                     messages = await monitor.monitor_channel(channel_id, limit)
                                     all_messages.extend(messages)
 
-                                # Filter by time
+                                # Filter by time (handle timezone-aware datetimes)
                                 cutoff_time = datetime.now() - timedelta(hours=hours)
-                                recent_messages = [msg for msg in all_messages if msg['date'] > cutoff_time]
+                                
+                                recent_messages = []
+                                for msg in all_messages:
+                                    msg_date = msg['date']
+                                    
+                                    # Handle timezone comparison safely
+                                    try:
+                                        # Try direct comparison first
+                                        if msg_date > cutoff_time:
+                                            recent_messages.append(msg)
+                                    except TypeError:
+                                        # If timezone comparison fails, convert to naive datetimes
+                                        if msg_date.tzinfo is not None:
+                                            msg_date = msg_date.replace(tzinfo=None)
+                                        if cutoff_time.tzinfo is not None:
+                                            cutoff_time = cutoff_time.replace(tzinfo=None)
+                                        
+                                        if msg_date > cutoff_time:
+                                            recent_messages.append(msg)
 
                                 # Filter by minimum mentions
                                 filtered_messages = [msg for msg in recent_messages if len(msg['mentions']) >= min_mentions]
@@ -348,13 +366,13 @@ def display_live_telegram_dashboard():
     - Enter your phone number when prompted
     - Enter the verification code sent to your phone
     - You'll only need to do this once!
-    
+
     **Step 2: Select Channels & Groups**
     - Choose channels and groups you want to monitor
     - Groups often have more active discussions
     - Set your monitoring preferences
     - Click "Start Live Monitoring"
-    
+
     **Step 3: View Results**
     - See real-time stock mentions from all sources
     - View analytics and engagement metrics
