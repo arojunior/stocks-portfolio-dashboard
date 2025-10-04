@@ -20,6 +20,13 @@ class TelegramMonitor:
     """Monitors Telegram channels for stock mentions"""
 
     def __init__(self):
+        # Load environment variables
+        try:
+            from dotenv import load_dotenv
+            load_dotenv()
+        except ImportError:
+            pass  # dotenv is optional
+
         self.api_id = os.getenv("TELEGRAM_API_ID")
         self.api_hash = os.getenv("TELEGRAM_API_HASH")
         self.phone = os.getenv("TELEGRAM_PHONE")
@@ -52,6 +59,7 @@ class TelegramMonitor:
         """Initialize Telegram client"""
         try:
             if not all([self.api_id, self.api_hash, self.phone]):
+                print("Missing Telegram credentials. Please run setup_telegram.py first.")
                 return False
 
             self.client = TelegramClient(
@@ -60,10 +68,24 @@ class TelegramMonitor:
                 self.api_hash
             )
 
+            # Start client with phone number
             await self.client.start(phone=self.phone)
             return True
+        except SessionPasswordNeededError:
+            print("2FA is enabled. Please enter your 2FA password.")
+            password = input("2FA Password: ")
+            try:
+                await self.client.sign_in(password=password)
+                return True
+            except Exception as e:
+                print(f"2FA authentication failed: {e}")
+                return False
         except Exception as e:
             print(f"Error initializing Telegram client: {e}")
+            print("\nTroubleshooting tips:")
+            print("1. Check your API credentials are correct")
+            print("2. Make sure your phone number format is correct (+1234567890)")
+            print("3. Try running setup_telegram.py to reconfigure")
             return False
 
     async def get_available_channels(self) -> List[Dict]:

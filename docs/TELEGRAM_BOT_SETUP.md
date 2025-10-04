@@ -43,12 +43,15 @@ TELEGRAM_BOT_TOKEN=your_bot_token_here
 Your bot will automatically track mentions of your **42 portfolio tickers**:
 
 ### **Brazilian Stocks (Acoes_B3)**
+
 - VAMO3, SANB11, EGIE3, VBBR3, CSAN3, ISAE4, SAPR4, PRIO3, GOAU4, PSSA3, CPLE6, UNIP6, VIVT3, FESA4, ITSA4
 
 ### **US Stocks (US_NYSE)**
+
 - WBD, LIT, TLT, QQQ, SOXX, VNQ, SGOV, BRK.B, XLE, XLV, HDV, LTC, CQQQ, APPS
 
 ### **FII Funds (FII_B3)**
+
 - VISC11, HGLG11, HGRU11, BTLG11, KNCR11, XPLG11, MXRF11, RZTR11, HCTR11, CPTI11
 
 ## 🔍 **How It Works**
@@ -62,16 +65,19 @@ Your bot will automatically track mentions of your **42 portfolio tickers**:
 ## 📱 **Channel Setup Examples**
 
 ### **Financial News Channels**
+
 - Add bot to `@stocknews`, `@brstocks`, `@usstocks`
 - Bot will track mentions of your stocks
 - Get real-time alerts for your portfolio
 
 ### **FII Discussion Groups**
+
 - Add bot to `@fiidiscussion`, `@rendafixa`
 - Monitor FII-specific discussions
 - Track FII fund mentions
 
 ### **Sector-Specific Channels**
+
 - Add bot to energy, mining, tech channels
 - Track sector-specific stock discussions
 - Get insights on your holdings
@@ -89,17 +95,20 @@ The bot needs these permissions in each channel:
 ## 🔧 **Troubleshooting**
 
 ### **"No messages found"**
+
 - **Check bot permissions** - Make sure it can read messages
 - **Verify channel membership** - Bot must be added to channels
 - **Check message activity** - Channels need recent messages
 - **Adjust time range** - Try looking back further
 
 ### **"Bot not responding"**
+
 - **Check bot token** - Verify it's correct in .env file
 - **Restart dashboard** - Reload the Streamlit app
 - **Check internet connection** - Bot needs API access
 
 ### **"No updates found"**
+
 - **Add bot to channels** - Bot needs to be in channels to see messages
 - **Give admin permissions** - Bot needs to read messages
 - **Wait for messages** - Bot only sees messages after it's added
@@ -107,18 +116,21 @@ The bot needs these permissions in each channel:
 ## 📊 **Dashboard Features**
 
 ### **Real-time Monitoring**
+
 - **Live message tracking** from your channels
 - **Automatic ticker detection** in messages
 - **Engagement metrics** (views, forwards)
 - **Time-based filtering** (last 24 hours, week, etc.)
 
 ### **Analytics**
+
 - **Ticker mention frequency** charts
 - **Channel performance** comparison
 - **Trending stocks** in your portfolio
 - **Message engagement** analysis
 
 ### **Filtering Options**
+
 - **Minimum mentions** threshold
 - **Time range** selection
 - **Channel-specific** filtering
