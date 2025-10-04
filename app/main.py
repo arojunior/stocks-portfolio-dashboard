@@ -60,6 +60,11 @@ def main():
         display_dividend_dashboard()
         return
 
+    if st.sidebar.button("📱 Telegram", use_container_width=True):
+        from ui.telegram_dashboard import display_telegram_dashboard
+        display_telegram_dashboard()
+        return
+
     # FII Dividend Analysis is automatically integrated
     st.sidebar.info("🏢 **FII Analysis**: Automatically shows when viewing FII portfolios or portfolios containing FIIs")
 
@@ -97,7 +102,7 @@ def main():
     # Create a more compact layout with radio buttons
     analysis_option = st.radio(
         "Choose analysis type:",
-        ["All Portfolios (Consolidated)", "Individual Portfolio", "Dividend Analysis (All Stocks)"],
+        ["All Portfolios (Consolidated)", "Individual Portfolio", "Dividend Analysis (All Stocks)", "Telegram Monitor"],
         horizontal=True,
         index=0
     )
@@ -109,6 +114,10 @@ def main():
     elif analysis_option == "Dividend Analysis (All Stocks)":
         from ui.dividend_dashboard import display_dividend_dashboard
         display_dividend_dashboard()
+        return
+    elif analysis_option == "Telegram Monitor":
+        from ui.telegram_dashboard import display_telegram_dashboard
+        display_telegram_dashboard()
         return
 
     st.divider()
