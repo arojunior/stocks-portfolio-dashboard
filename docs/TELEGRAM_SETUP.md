@@ -5,6 +5,7 @@ This guide will help you set up Telegram channel monitoring for your portfolio s
 ## 🎯 What This Does
 
 The Telegram integration allows you to:
+
 - **Monitor multiple Telegram channels** for mentions of your portfolio stocks
 - **Filter messages** by ticker symbols automatically
 - **Track engagement metrics** (views, forwards) for stock mentions
@@ -16,10 +17,12 @@ The Telegram integration allows you to:
 ### 1. Get Telegram API Credentials
 
 1. **Visit Telegram API page:**
+
    - Go to https://my.telegram.org/apps
    - Log in with your Telegram account
 
 2. **Create a new application:**
+
    - Click "Create new application"
    - Fill in the form:
      - **App title:** Portfolio Monitor (or any name)
@@ -94,18 +97,24 @@ This creates a session file that will be reused for future runs.
 ## 🔍 Example Use Cases
 
 ### 1. News Monitoring
+
 Monitor financial news channels for mentions of your stocks:
+
 - `@stocknews` - General market news
 - `@brstocks` - Brazilian stock discussions
 - `@usstocks` - US stock discussions
 
 ### 2. FII Discussions
+
 Track FII (Real Estate Investment Fund) discussions:
+
 - `@fiidiscussion` - FII-specific channels
 - `@rendafixa` - Fixed income discussions
 
 ### 3. Sector Analysis
+
 Monitor sector-specific channels:
+
 - `@energia` - Energy sector
 - `@mineracao` - Mining sector
 - `@tecnologia` - Technology sector
@@ -113,18 +122,21 @@ Monitor sector-specific channels:
 ## 📊 Dashboard Features
 
 ### Message Statistics
+
 - **Total messages** found
 - **Unique tickers** mentioned
 - **Channel breakdown** of mentions
 - **Engagement metrics** (views, forwards)
 
 ### Recent Messages
+
 - **Last 10 messages** mentioning your stocks
 - **Message preview** with full text
 - **Engagement data** for each message
 - **Time stamps** for tracking
 
 ### Analytics Charts
+
 - **Ticker mention frequency** bar chart
 - **Channel performance** comparison
 - **Time-based trends** of mentions
@@ -133,17 +145,20 @@ Monitor sector-specific channels:
 ## ⚙️ Configuration Options
 
 ### Monitoring Schedule
+
 - **Check frequency:** Every 5 minutes to 1 hour
 - **Retention period:** 1 day to 1 month
 - **Message limits:** 10-200 messages per channel
 
 ### Filter Settings
+
 - **Minimum mentions:** Filter out low-activity mentions
 - **Include views/forwards:** Show engagement metrics
 - **Case sensitivity:** Match exact case or ignore
 - **Whole words:** Match complete words only
 
 ### Channel Management
+
 - **Add/remove channels** dynamically
 - **Channel performance** tracking
 - **Mention frequency** by channel
@@ -152,18 +167,21 @@ Monitor sector-specific channels:
 ## 🚨 Important Notes
 
 ### Privacy & Security
+
 - **Session files** are stored locally and encrypted
 - **No message content** is stored permanently
 - **Only ticker mentions** are tracked
 - **Full message text** is only shown in the dashboard
 
 ### Rate Limits
+
 - **Telegram API limits** apply (30 requests per second)
 - **Channel access** depends on your membership
 - **Message history** limited by channel settings
 - **Monitoring frequency** should respect API limits
 
 ### Legal Considerations
+
 - **Respect channel rules** and terms of service
 - **Don't spam** or abuse the monitoring
 - **Use responsibly** for investment research
@@ -174,16 +192,19 @@ Monitor sector-specific channels:
 ### Common Issues
 
 1. **"No channels found"**
+
    - Make sure you're a member of the channels
    - Check if channels are public or private
    - Verify your Telegram account is active
 
 2. **"Authentication failed"**
+
    - Check your API credentials
    - Verify your phone number format
    - Try deleting the session file and re-authenticating
 
 3. **"Rate limit exceeded"**
+
    - Reduce monitoring frequency
    - Decrease message limits per channel
    - Wait before retrying
@@ -196,6 +217,7 @@ Monitor sector-specific channels:
 ### Getting Help
 
 If you encounter issues:
+
 1. **Check the logs** in the terminal
 2. **Verify your configuration** in the .env file
 3. **Test with a simple channel** first
@@ -204,6 +226,7 @@ If you encounter issues:
 ## 🎉 Success!
 
 Once configured, you'll have:
+
 - **Real-time monitoring** of your portfolio stocks
 - **Engagement analytics** from Telegram discussions
 - **Trending insights** from community discussions

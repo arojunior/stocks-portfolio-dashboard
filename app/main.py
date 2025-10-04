@@ -61,8 +61,8 @@ def main():
         return
 
     if st.sidebar.button("📱 Telegram", use_container_width=True):
-        from ui.telegram_dashboard import display_telegram_dashboard
-        display_telegram_dashboard()
+        from core.telegram_bot_monitor import display_telegram_bot_dashboard
+        display_telegram_bot_dashboard()
         return
 
     # FII Dividend Analysis is automatically integrated
@@ -116,8 +116,8 @@ def main():
         display_dividend_dashboard()
         return
     elif analysis_option == "Telegram Monitor":
-        from ui.telegram_dashboard import display_telegram_dashboard
-        display_telegram_dashboard()
+        from core.telegram_bot_monitor import display_telegram_bot_dashboard
+        display_telegram_bot_dashboard()
         return
 
     st.divider()
