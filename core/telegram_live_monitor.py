@@ -315,11 +315,11 @@ def display_live_telegram_dashboard():
 
                                 # Filter by time (handle timezone-aware datetimes)
                                 cutoff_time = datetime.now() - timedelta(hours=hours)
-                                
+
                                 recent_messages = []
                                 for msg in all_messages:
                                     msg_date = msg['date']
-                                    
+
                                     # Handle timezone comparison safely
                                     try:
                                         # Try direct comparison first
@@ -331,7 +331,7 @@ def display_live_telegram_dashboard():
                                             msg_date = msg_date.replace(tzinfo=None)
                                         if cutoff_time.tzinfo is not None:
                                             cutoff_time = cutoff_time.replace(tzinfo=None)
-                                        
+
                                         if msg_date > cutoff_time:
                                             recent_messages.append(msg)
 

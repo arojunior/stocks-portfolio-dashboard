@@ -51,8 +51,8 @@ class FIIDividendAnalyzer:
                 "ticker": ticker,
                 "current_price": dividend_data.get("current_price", 0),
                 "dividend_history": dividend_data.get("dividend_history", []),
-                "total_dividends_2y": dividend_data.get("total_dividends_2y", 0),
-                "dividend_count_2y": dividend_data.get("dividend_count_2y", 0),
+                "total_dividends_3mo": dividend_data.get("total_dividends_3mo", 0),
+                "dividend_count_3mo": dividend_data.get("dividend_count_3mo", 0),
                 "avg_monthly_dividend": dividend_data.get("avg_monthly_dividend", 0),
                 "annual_dividend_yield": dividend_data.get("annual_dividend_yield", 0),
                 "monthly_dividend_yield": dividend_data.get("monthly_dividend_yield", 0),
@@ -83,8 +83,8 @@ class FIIDividendAnalyzer:
             "ticker": ticker,
             "current_price": current_price,
             "dividend_history": [],
-            "total_dividends_2y": monthly_dividend * 24,  # 2 years
-            "dividend_count_2y": 24,  # Monthly dividends
+            "total_dividends_3mo": monthly_dividend * 3,  # 3 months
+            "dividend_count_3mo": 3,  # Monthly dividends
             "avg_monthly_dividend": monthly_dividend,
             "annual_dividend_yield": annual_yield,
             "monthly_dividend_yield": annual_yield / 12,

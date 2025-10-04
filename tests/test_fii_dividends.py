@@ -66,8 +66,8 @@ def test_fii_dividend_analysis():
         brapi_data = fetch_fii_dividend_analysis(test_ticker)
         if brapi_data:
             print(f"   ✅ BRAPI call successful for {test_ticker}")
-            print(f"   Dividend count: {brapi_data.get('dividend_count_2y', 0)}")
-            print(f"   Total dividends: R$ {brapi_data.get('total_dividends_2y', 0):.2f}")
+            print(f"   Dividend count: {brapi_data.get('dividend_count_3mo', 0)}")
+            print(f"   Total dividends: R$ {brapi_data.get('total_dividends_3mo', 0):.2f}")
         else:
             print(f"   ⚠️ BRAPI call returned no data for {test_ticker}")
     except Exception as e:
